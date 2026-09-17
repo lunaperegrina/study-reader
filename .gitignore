@@ -1,0 +1,24 @@
+# env
+.env
+.env.*
+!.env.example
+
+# deps / build
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# tooling state
+.scratch/
+.zcode/
+.playwright-mcp/
+.video_agent/
+
+# local artifacts
+examples/*.study
+!examples/tiny-course.study
+vendor/
+
+# os
+.DS_Store

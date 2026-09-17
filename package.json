@@ -1,0 +1,18 @@
+{
+	"name": "study-reader",
+	"private": true,
+	"version": "0.1.0",
+	"type": "module",
+	"packageManager": "pnpm@10.29.3",
+	"description": "Open .study course format + KOReader plugin for active study on e-readers",
+	"scripts": {
+		"study-format:test": "pnpm --filter @study-reader/study-format test",
+		"study-format:check": "pnpm --filter @study-reader/study-format check",
+		"converter:test": "pnpm --filter @study-reader/mdx-to-study test",
+		"converter:check": "pnpm --filter @study-reader/mdx-to-study check",
+		"study:build": "pnpm --filter @study-reader/mdx-to-study convert --",
+		"plugin:deploy": "bash packages/koreader-plugin/deploy.sh",
+		"test": "pnpm -r --if-present test",
+		"check": "pnpm -r --if-present check"
+	}
+}
