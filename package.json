@@ -10,7 +10,7 @@
 		"study-format:check": "pnpm --filter @study-reader/study-format check",
 		"converter:test": "pnpm --filter @study-reader/mdx-to-study test",
 		"converter:check": "pnpm --filter @study-reader/mdx-to-study check",
-		"study:build": "pnpm --filter @study-reader/mdx-to-study convert --",
+		"study:build": "pnpm --filter @study-reader/mdx-to-study convert",
 		"plugin:deploy": "bash packages/koreader-plugin/deploy.sh",
 		"test": "pnpm -r --if-present test",
 		"check": "pnpm -r --if-present check"

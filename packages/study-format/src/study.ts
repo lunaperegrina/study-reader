@@ -96,7 +96,8 @@ export function validateCrossReferences(pkg: StudyPackage): string[] {
 			const trimmed = paragraph.trim();
 			const match = /^\{\{(quiz|flashcard|image):([^}]+)\}\}$/.exec(trimmed);
 			if (!match) continue;
-			const [, kind, ref] = match;
+			const [, kind, rawRef] = match;
+			const ref = rawRef.replace(/\\([_~*[\]()#+.!-])/g, "$1");
 			if (kind === "quiz" && !questionIds.has(ref)) {
 				errors.push(`${path}: quiz directive references unknown id "${ref}"`);
 			}

@@ -1,0 +1,8 @@
+{
+	"lesson": "T01",
+	"keyframes": [
+		{ "t": 0.5, "stable_for": 3, "png": ".work/T01/frames/frame_a.png", "speech": "abertura" },
+		{ "t": 100, "stable_for": 8, "png": ".work/T01/frames/frame_b.png", "speech": "meio" },
+		{ "t": 200, "stable_for": 5, "png": ".work/T01/frames/frame_c.png", "speech": "fim" }
+	]
+}

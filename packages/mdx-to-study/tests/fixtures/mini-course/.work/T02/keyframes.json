@@ -1,0 +1,6 @@
+{
+	"lesson": "T02",
+	"keyframes": [
+		{ "t": 1, "stable_for": 4, "png": ".work/T02/frames/frame_x.png", "speech": " início" }
+	]
+}

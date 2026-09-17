@@ -1,0 +1,43 @@
+---
+title: Primeira Lição
+description: A primeira lição do fixture.
+---
+
+**ACID** é um conjunto de quatro propriedades.
+
+## Atomicidade
+
+Um parágrafo antes do diagrama.
+
+<Mermaid chart={`flowchart TD
+    A["BEGIN"] --> B["COMMIT"]
+    B --> C["FIM"]`} />
+
+<Callout type="warning">Um NoSQL pode implementar algumas dessas propriedades.</Callout>
+
+## Tabela
+
+| Letra | Propriedade |
+| ----- | ----------- |
+| A | Atomicidade |
+| C | Consistência |
+
+<Quiz
+  questions={[
+    {
+      prompt: "O que a letra A representa?",
+      options: ["Atomicidade", "Disponibilidade"],
+      answer: [0],
+      explanation: "ACID: atomicidade, consistência, isolamento, durabilidade."
+    },
+    {
+      prompt: "Quais fazem parte do ACID?",
+      multiple: true,
+      options: ["Atomicidade", "Consistência", "Latência"],
+      answer: [0, 1],
+      explanation: "Latência não faz parte do acrônimo."
+    }
+  ]}
+/>
+
+No próximo capítulo, seguimos.

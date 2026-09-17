@@ -1,0 +1,17 @@
+{
+	"modules": {
+		"mod-a": {
+			"title": "A. Módulo Alfa",
+			"lessons": [
+				{ "fid": "T01", "title": "Primeira", "slug": "primeira", "video": "/v/a1.mp4", "done": false },
+				{ "fid": "T02", "title": "Segunda", "slug": "segunda", "video": "/v/a2.mp4", "done": false }
+			]
+		},
+		"mod-b": {
+			"title": "B. Módulo Beta",
+			"lessons": [
+				{ "fid": "T03", "title": "Única", "slug": "unica", "video": "/v/b1.mp4", "done": false }
+			]
+		}
+	}
+}
