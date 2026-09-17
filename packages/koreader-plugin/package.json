@@ -1,0 +1,12 @@
+{
+	"name": "@study-reader/koreader-plugin",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"description": "studyreader.koplugin — KOReader runtime for .study courses (Lua) + SSH deploy",
+	"scripts": {
+		"deploy": "bash deploy.sh",
+		"check": "luajit -e \"for _, f in ipairs({'_meta','main','md2xhtml','quiz','review','screens','srs','state','store'}) do assert(loadfile('plugin/studyreader.koplugin/' .. f .. '.lua'), f) end print('lua syntax OK')\"",
+		"test": "luajit tests/run.lua"
+	}
+}
