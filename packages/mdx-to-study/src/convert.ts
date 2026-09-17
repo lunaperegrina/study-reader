@@ -107,7 +107,7 @@ export async function convertCourse(
 				imageCount += 1;
 			}
 
-			const contentPath = `content/${pad3(sequence)}-${sourceLesson.slug}.md`;
+			const contentPath = `content/${pad3(sequence)}-${sourceLesson.fileStem}.md`;
 			const { markdown, frontmatter } = mdxToMarkdown(mdx, {
 				quizIds: quizEntries.map((entry) => entry.id),
 				keyframeQueue: assets.map((asset) => asset.assetPath),

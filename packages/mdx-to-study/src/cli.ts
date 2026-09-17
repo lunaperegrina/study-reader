@@ -74,6 +74,8 @@ function parseArgs(argv: string[]): Args & { source: string } {
 			case "--filename":
 				args.filename = next();
 				break;
+			case "--":
+				break;
 			default:
 				throw new Error(`unknown argument: ${arg}`);
 		}

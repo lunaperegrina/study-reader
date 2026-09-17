@@ -1,10 +1,11 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 
 export type SourceLesson = {
 	fid: string;
 	title: string;
 	slug: string;
+	fileStem: string;
 	moduleKey: string;
 };
 
@@ -59,7 +60,7 @@ async function lessonOrder(
 		const meta = (await readJson(join(moduleDir, "meta.json"))) as {
 			pages?: string[];
 		};
-		const bySlug = new Map(lessons.map((lesson) => [lesson.slug, lesson]));
+		const bySlug = new Map(lessons.map((lesson) => [lesson.fileStem, lesson]));
 		const ordered: SourceLesson[] = [];
 		for (const page of meta.pages ?? []) {
 			const lesson = bySlug.get(page);
@@ -72,6 +73,26 @@ async function lessonOrder(
 	} catch {
 		return lessons;
 	}
+}
+
+async function resolveStem(moduleDir: string, slug: string): Promise<string> {
+	const exists = await readFile(join(moduleDir, `${slug}.mdx`), "utf8")
+		.then(() => true)
+		.catch(() => false);
+	if (exists) return slug;
+	const stems = (await readdir(moduleDir))
+		.filter((entry) => entry.endsWith(".mdx"))
+		.map((entry) => entry.slice(0, -4));
+	const candidates = stems.filter(
+		(stem) =>
+			slug === stem ||
+			slug.startsWith(`${stem}-`) ||
+			stem.startsWith(`${slug}-`),
+	);
+	if (candidates.length !== 1) {
+		throw new Error(`cannot resolve lesson file for slug "${slug}" in ${moduleDir}`);
+	}
+	return candidates[0];
 }
 
 export async function readCoursePlan(
@@ -88,11 +109,15 @@ export async function readCoursePlan(
 	for (const key of orderedKeys) {
 		const sourceModule = manifest.modules[key];
 		if (!sourceModule) continue;
-		const lessons: SourceLesson[] = sourceModule.lessons.map((lesson) => ({
-			...lesson,
-			moduleKey: key,
-		}));
 		const moduleDir = join(sourceRoot, contentDir, key);
+		const lessons: SourceLesson[] = [];
+		for (const lesson of sourceModule.lessons) {
+			lessons.push({
+				...lesson,
+				fileStem: await resolveStem(moduleDir, lesson.slug),
+				moduleKey: key,
+			});
+		}
 		modules.push({
 			key,
 			title: sourceModule.title,
@@ -107,5 +132,5 @@ export function lessonMdxPath(
 	contentDir: string,
 	lesson: SourceLesson,
 ): string {
-	return join(sourceRoot, contentDir, lesson.moduleKey, `${lesson.slug}.mdx`);
+	return join(sourceRoot, contentDir, lesson.moduleKey, `${lesson.fileStem}.mdx`);
 }
