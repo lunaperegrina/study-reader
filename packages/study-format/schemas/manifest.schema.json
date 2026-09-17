@@ -1,0 +1,98 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://study-reader.dev/schemas/manifest.schema.json",
+	"title": ".study manifest",
+	"description": "Entry point of a .study course package (spec v1)",
+	"type": "object",
+	"required": ["formatVersion", "id", "version", "title", "modules"],
+	"properties": {
+		"formatVersion": {
+			"type": "integer",
+			"minimum": 1,
+			"const": 1
+		},
+		"id": {
+			"type": "string",
+			"pattern": "^[a-z0-9][a-z0-9-]*$",
+			"maxLength": 128
+		},
+		"version": {
+			"type": "integer",
+			"minimum": 1
+		},
+		"title": {
+			"type": "string",
+			"minLength": 1,
+			"maxLength": 512
+		},
+		"description": {
+			"type": "string",
+			"maxLength": 2048
+		},
+		"author": {
+			"type": "string",
+			"maxLength": 256
+		},
+		"language": {
+			"type": "string",
+			"pattern": "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{1,8})*$"
+		},
+		"cover": {
+			"type": "string",
+			"pattern": "^assets/.+$"
+		},
+		"modules": {
+			"type": "array",
+			"minItems": 1,
+			"items": {
+				"type": "object",
+				"required": ["id", "title", "lessons"],
+				"properties": {
+					"id": {
+						"type": "string",
+						"pattern": "^[a-z0-9][a-z0-9-]*$",
+						"maxLength": 128
+					},
+					"title": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 512
+					},
+					"lessons": {
+						"type": "array",
+						"minItems": 1,
+						"items": {
+							"type": "object",
+							"required": ["id", "title", "content"],
+							"properties": {
+								"id": {
+									"type": "string",
+									"pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$",
+									"maxLength": 128
+								},
+								"title": {
+									"type": "string",
+									"minLength": 1,
+									"maxLength": 512
+								},
+								"content": {
+									"type": "string",
+									"pattern": "^content/.+\\.md$"
+								}
+							},
+							"additionalProperties": false
+						}
+					}
+				},
+				"additionalProperties": false
+			}
+		},
+		"extensions": {
+			"type": "object",
+			"additionalProperties": {
+				"type": "object"
+			}
+		}
+	},
+	"additionalProperties": true
+}

@@ -1,0 +1,23 @@
+{
+	"tiny-q1": {
+		"type": "single-choice",
+		"question": "O que a letra A representa?",
+		"options": [
+			{ "id": "a", "text": "Atomicidade" },
+			{ "id": "b", "text": "Disponibilidade" }
+		],
+		"correct": ["a"],
+		"explanation": "ACID: atomicidade, consistência, isolamento, durabilidade."
+	},
+	"tiny-q2": {
+		"type": "multiple-choice",
+		"question": "Quais são propriedades do ACID?",
+		"options": [
+			{ "id": "a", "text": "Atomicidade" },
+			{ "id": "b", "text": "Consistência" },
+			{ "id": "c", "text": "Latência" }
+		],
+		"correct": ["a", "b"],
+		"explanation": "Latência não faz parte do acrônimo."
+	}
+}

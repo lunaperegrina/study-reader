@@ -1,0 +1,8 @@
+[
+	{
+		"id": "tiny-card-1",
+		"front": "O que é ACID?",
+		"back": "Atomicidade, Consistência, Isolamento, Durabilidade.",
+		"tags": ["sql", "transacoes"]
+	}
+]

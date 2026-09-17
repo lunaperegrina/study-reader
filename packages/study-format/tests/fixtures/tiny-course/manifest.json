@@ -1,0 +1,23 @@
+{
+	"formatVersion": 1,
+	"id": "tiny-course",
+	"version": 1,
+	"title": "Tiny Course",
+	"description": "Smallest valid-ish .study package with everything exercised",
+	"author": "study-reader",
+	"language": "pt-BR",
+	"cover": "assets/diagram.png",
+	"modules": [
+		{
+			"id": "intro",
+			"title": "01. Intro",
+			"lessons": [
+				{
+					"id": "T01",
+					"title": "Primeira lição",
+					"content": "content/001-primeira-licao.md"
+				}
+			]
+		}
+	]
+}
