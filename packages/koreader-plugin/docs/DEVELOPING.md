@@ -5,24 +5,40 @@
 The fastest iteration cycle (no cable, no restart gymnastics):
 
 ```sh
-STUDYREADER_HOST=root@192.168.1.50 pnpm plugin:deploy
+STUDYREADER_HOST=root@192.168.15.3 STUDYREADER_PORT=2222 pnpm plugin:deploy
 ```
 
 The script:
 
-1. `rsync`s `plugin/studyreader.koplugin/` → `/mnt/us/koreader/plugins/studyreader.koplugin/` (Kindle paths; override with `STUDYREADER_PLUGIN_DST`)
-2. `rsync`s `examples/*.study` → `/mnt/us/documents/study/` (override with `STUDYREADER_STUDY_DST`)
-3. runs `STUDYREADER_RESTART_CMD` (default `killall -TERM luajit`) — KOReader exits to the launcher; reopen it to load the new plugin code
+1. `tar`s `plugin/studyreader.koplugin/` over ssh → `/mnt/us/koreader/plugins/studyreader.koplugin/` (Kindle paths; override with `STUDYREADER_PLUGIN_DST`). Stock Kindle firmware has no rsync — hence tar over ssh.
+2. `tar`s `examples/*.study` → `/mnt/us/documents/study/` (override with `STUDYREADER_STUDY_DST`)
+3. runs `STUDYREADER_RESTART_CMD` (default `killall -TERM luajit`) — KOReader exits to the launcher; reopen it to load the new plugin code (over ssh: `cd /mnt/us/koreader && nohup ./koreader.sh >/dev/null 2>&1 &`)
 
-Enabling SSH on a Kindle usually means installing [USBNetwork](https://www.mobileread.com/forums/showthread.php?t=186645) (comes with KUAL) and either `ssh` over Wi-Fi or USB.
+Other variables: `STUDYREADER_PORT` (SSH port; the reference Kindle uses 2222).
+
+### Password auth without typing
+
+If the device's sshd only does password auth (Kindle USBNetwork), inject it via
+OpenSSH's askpass instead of installing sshpass:
+
+```sh
+printf '#!/bin/sh\necho "DEVICE_PASSWORD"\n' > /tmp/kindle-askpass.sh
+chmod +x /tmp/kindle-askpass.sh
+export SSH_ASKPASS=/tmp/kindle-askpass.sh SSH_ASKPASS_REQUIRE=force DISPLAY=:0
+pnpm plugin:deploy
+```
+
+Notes from the reference Kindle: key auth from `/mnt/us/usbnet/etc/keys/` fails
+because user storage is FAT (chmod is a no-op → world-writable authorized_keys
+is rejected), and root's home is tmpfs (`/tmp/root`), so keys don't survive
+reboots either — password + askpass is the pragmatic loop.
 
 ## Debugging
 
-- Crash log: `/mnt/us/koreader/crash.log` on the device (`ssh root@kindle tail -50 /mnt/us/koreader/crash.log`).
-- Runtime log (verbose): restart KOReader from a shell with
-  `./reader.lua -d` to get debug output on stdout.
-- Add `logger.dbg(...)` calls — the plugin already logs warnings through
-  `logger` (requires `-d` or `--debug` to show dbg-level).
+- KOReader on Kindle tees stdout/stderr to `/mnt/us/koreader/crash.log` — watch it live:
+  `ssh -p 2222 root@<ip> 'tail -f /mnt/us/koreader/crash.log'`
+- `pidof luajit` to check the process (busybox `ps` output is unreliable there)
+- Add `logger.dbg(...)` calls — dbg-level needs `./koreader.sh` started with `-d`
 
 ## Local tests (no device needed)
 
