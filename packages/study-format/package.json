@@ -9,7 +9,8 @@
 	},
 	"scripts": {
 		"test": "vitest run",
-		"check": "tsc --noEmit"
+		"check": "tsc --noEmit",
+		"example": "node scripts/build-example.mts"
 	},
 	"dependencies": {
 		"fflate": "^0.8.2",
