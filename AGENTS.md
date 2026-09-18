@@ -27,7 +27,8 @@ Convenções do monorepo study-reader. Estrutura no padrão smartmil-monorepo / 
 - Código Lua em `packages/koreader-plugin/plugin/studyreader.koplugin/`.
 - Alvo: KOReader estável (APIs `WidgetContainer`, `addToMainMenu`, `UIManager`, `ReaderUI:showReader`, `require("json")`).
 - O pacote `.study` é **imutável**: o plugin nunca escreve nele. Estado do usuário em `<koreader-data>/studyreader/data/<course-id>/{progress,answers,reviews}.json`.
-- Deploy/teste real é no dispositivo (Kindle via SSH) — `pnpm plugin:deploy`. Não há CI de Lua no M1.
+- Deploy no dispositivo: `pnpm plugin:deploy`. Não há CI de Lua no M1.
+- Ver e operar o dispositivo remotamente (screenshot do e-ink, taps/swipes, relançar KOReader com arquivo, crash.log): `pnpm plugin:remote` — loop completo em `packages/koreader-plugin/docs/DEVELOPING.md`. Em debug/validação de UI, usar isso em vez de pedir foto do aparelho ao usuário.
 
 ## Contexto de produto
 

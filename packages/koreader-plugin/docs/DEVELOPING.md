@@ -40,6 +40,44 @@ reboots either — password + askpass is the pragmatic loop.
 - `pidof luajit` to check the process (busybox `ps` output is unreliable there)
 - Add `logger.dbg(...)` calls — dbg-level needs `./koreader.sh` started with `-d`
 
+## Remote control: screen + input over SSH
+
+`tools/kindle-remote.sh` (root script `plugin:remote`) gives the dev machine
+eyes and hands on the device, so plugin UIs can be verified without anyone
+holding the Kindle:
+
+```sh
+export STUDYREADER_HOST=root@192.168.15.3 STUDYREADER_PORT=2222
+pnpm plugin:remote info                                      # fb/touch/pid probe
+pnpm plugin:remote screenshot [/tmp/kindle-screen.png]       # e-ink framebuffer -> PNG
+pnpm plugin:remote tap <x> <y> [hold_ms]                     # hold 100ms = tap, 900 = long-press
+pnpm plugin:remote swipe <x1> <y1> <x2> <y2> [ms]            # drag gesture
+pnpm plugin:remote launch [/mnt/us/documents/study/foo.study]# restart KOReader, optionally opening a file
+pnpm plugin:remote log [lines]                               # tail crash.log
+```
+
+How it works: screenshots read `/dev/fb0` (reference device: 8bpp grayscale,
+1072×1448 — override with `STUDYREADER_FB_GEOMETRY=WxH`) and convert locally
+with ffmpeg; input is protocol-B evdev events base64'd into the touchscreen
+(`/dev/input/event1`, `pt_mt`), paced device-side with `usleep`. Same
+`SSH_ASKPASS` auth as `deploy.sh`; needs `python3` + `ffmpeg` locally.
+
+Full iteration loop without touching the device:
+
+```sh
+pnpm plugin:deploy
+pnpm plugin:remote launch /mnt/us/documents/study/aws-ai-practitioner-aif-c01.study
+sleep 12 && pnpm plugin:remote screenshot /tmp/s.png
+pnpm plugin:remote tap 536 200   # "Practice exam (N questions)"
+pnpm plugin:remote log 30        # errors end up in crash.log
+```
+
+Caveats: the framebuffer shows the logical screen — e-ink ghosting/flash
+artifacts are not visible; tap coordinates are pixels in the fb's coordinate
+space; busybox `sleep` is integer-only, which is why pacing uses `usleep`.
+`launch` appends KOReader output to `crash.log` (redirecting to /dev/null
+would silently lose logs, unlike framework-launched boots).
+
 ## Local tests (no device needed)
 
 The pure modules (`md2xhtml`, `srs`) run under plain luajit:

@@ -13,6 +13,7 @@ local UIManager = require("ui/uimanager")
 local logger = require("logger")
 local _ = require("gettext")
 
+local CourseList = require("courselist")
 local QuizWidget = require("quiz")
 local ReviewWidget = require("review")
 local ExamWidget = require("exam")
@@ -148,24 +149,24 @@ function Screens.myCourses()
                 total = total + 1
                 if State.completedLesson(state, lesson.id) then done = done + 1 end
             end
-            local pct = total > 0 and string.format("%d%%", math.floor(done * 100 / total)) or "0%"
             items[#items + 1] = {
-                text = course.manifest.title or entry.name,
-                mandatory = pct,
+                title = course.manifest.title or entry.name,
+                lessons = total,
+                pct = total > 0 and math.floor(done * 100 / total) or 0,
                 callback = function() Screens.courseMenu(course) end,
             }
         else
             logger.warn("studyreader: cannot open course", entry.path, err)
             items[#items + 1] = {
-                text = string.format("%s (error)", entry.name),
-                select_enabled = false,
+                title = string.format("%s (error)", entry.name),
+                lessons = nil,
+                pct = nil,
                 callback = function() warn(err or "cannot open course") end,
             }
         end
     end
-    pushMenu({
-        title = _("My courses"),
-        item_table = items,
+    pushWidget(CourseList:new{
+        courses = items,
     })
 end
 

@@ -41,6 +41,21 @@ Copies the plugin to `/mnt/us/koreader/plugins/studyreader.koplugin/`, ships any
 `examples/*.study` to `/mnt/us/documents/study/`, and restarts KOReader. See
 [docs/DEVELOPING.md](docs/DEVELOPING.md) for variables and the dev loop.
 
+## Remote control (eyes + hands on the device)
+
+Screenshots of the e-ink display, injected taps/swipes, relaunching KOReader
+with a file open, and crash.log — all over SSH, no one needs to hold the
+device:
+
+```sh
+STUDYREADER_HOST=root@192.168.1.50 pnpm plugin:remote screenshot
+STUDYREADER_HOST=root@192.168.1.50 pnpm plugin:remote tap 536 660
+```
+
+Requires `python3` + `ffmpeg` locally; see
+[docs/DEVELOPING.md](docs/DEVELOPING.md#remote-control-screen--input-over-ssh)
+for the full command set and the iteration loop.
+
 ## Tests
 
 ```sh

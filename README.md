@@ -75,4 +75,8 @@ Deploy the plugin + a `.study` course to a Kindle running KOReader over SSH:
 STUDYREADER_HOST=root@kindle-ip pnpm plugin:deploy
 ```
 
+The same device can be driven remotely (e-ink screenshots, injected taps,
+relaunching KOReader, crash.log) — `pnpm plugin:remote screenshot` — so UI work
+is verified without holding the reader.
+
 See [`packages/koreader-plugin/docs/DEVELOPING.md`](packages/koreader-plugin/docs/DEVELOPING.md).

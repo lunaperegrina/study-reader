@@ -13,6 +13,7 @@
 		"converter:check": "pnpm --filter @study-reader/mdx-to-study check",
 		"study:build": "node packages/mdx-to-study/src/cli.ts",
 		"plugin:deploy": "bash packages/koreader-plugin/deploy.sh",
+		"plugin:remote": "bash packages/koreader-plugin/tools/kindle-remote.sh",
 		"plugin:test": "cd packages/koreader-plugin && luajit tests/run.lua",
 		"plugin:check": "cd packages/koreader-plugin && luajit -e \"for _, f in ipairs({'_meta','main','md2xhtml','quiz','review','screens','srs','state','store'}) do assert(loadfile('plugin/studyreader.koplugin/' .. f .. '.lua'), f) end print('lua syntax OK')\"",
 		"test": "pnpm -r --if-present test",
