@@ -12,6 +12,7 @@ local InfoMessage = require("ui/widget/infomessage")
 local Size = require("ui/size")
 local TextBoxWidget = require("ui/widget/textboxwidget")
 local TextWidget = require("ui/widget/textwidget")
+local TitleBar = require("ui/widget/titlebar")
 local UIManager = require("ui/uimanager")
 local VerticalGroup = require("ui/widget/verticalgroup")
 local VerticalSpan = require("ui/widget/verticalspan")
@@ -120,23 +121,30 @@ function ReviewWidget:_populate()
         end
     end
 
+    local title_bar = TitleBar:new{
+        title = _("Reviews"),
+        width = self.dimen.w - 2 * PADDING,
+        align = "center",
+        close_callback = function() self:onClose() end,
+        show_parent = self,
+    }
     local filler = math.max(0,
-        self.dimen.h - group:getSize().h - 3 * PADDING)
+        self.dimen.h - group:getSize().h - title_bar:getHeight() - 3 * PADDING)
+    local top_filler = math.floor(filler / 2)
     local full_group = VerticalGroup:new{ align = "left" }
+    full_group[1] = title_bar
+    full_group[2] = VerticalSpan:new{ width = top_filler }
     for i = 1, #group do
-        full_group[i] = group[i]
+        full_group[#full_group + 1] = group[i]
     end
-    full_group[#full_group + 1] = VerticalSpan:new{ width = filler }
+    full_group[#full_group + 1] = VerticalSpan:new{ width = filler - top_filler }
 
     self[1] = FrameContainer:new{
         background = Blitbuffer.COLOR_WHITE,
         bordersize = 0,
         margin = 0,
         padding = PADDING,
-        VerticalGroup:new{
-            VerticalSpan:new{ width = PADDING },
-            full_group,
-        },
+        full_group,
     }
     self:refocusWidget()
     UIManager:setDirty(self, "ui")

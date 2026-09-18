@@ -22,9 +22,50 @@ local Screens = {}
 local stack = {}
 Screens.active = nil
 
-local function push(widget)
+local function untrack(widget)
+    for i = #stack, 1, -1 do
+        if stack[i] == widget then
+            table.remove(stack, i)
+        end
+    end
+end
+
+local function pushMenu(props)
+    props.covers_fullscreen = true
+    props.is_borderless = true
+    props.is_popout = false
+    local menu = Menu:new(props)
+    stack[#stack + 1] = menu
+    menu.close_callback = function()
+        untrack(menu)
+    end
+    UIManager:show(menu)
+    return menu
+end
+
+local function pushChildMenu(props)
+    props.title_bar_left_icon = "appbar.chevron.left"
+    local menu = pushMenu(props)
+    menu.onLeftButtonTap = function()
+        untrack(menu)
+        UIManager:close(menu)
+    end
+    return menu
+end
+
+local function pushWidget(widget)
     stack[#stack + 1] = widget
+    widget.onExit = function()
+        untrack(widget)
+    end
     UIManager:show(widget)
+end
+
+function Screens.pop()
+    local top = table.remove(stack)
+    if top then
+        UIManager:close(top)
+    end
 end
 
 function Screens.closeAll()
@@ -90,12 +131,9 @@ function Screens.myCourses()
             }
         end
     end
-    push(Menu:new{
+    pushMenu({
         title = _("My courses"),
         item_table = items,
-        covers_fullscreen = true,
-        is_borderless = true,
-        is_popout = false,
     })
 end
 
@@ -128,12 +166,9 @@ function Screens.courseMenu(course)
         }
     end
 
-    push(Menu:new{
+    pushChildMenu({
         title = course.manifest.title or course.id,
         item_table = items,
-        covers_fullscreen = true,
-        is_borderless = true,
-        is_popout = false,
     })
 end
 
@@ -153,12 +188,9 @@ function Screens.moduleMenu(course, module)
             callback = function() Screens.openLesson(course, lesson) end,
         }
     end
-    push(Menu:new{
+    pushChildMenu({
         title = module.title,
         item_table = items,
-        covers_fullscreen = true,
-        is_borderless = true,
-        is_popout = false,
     })
 end
 
@@ -186,7 +218,7 @@ function Screens.startQuiz(course, lesson, practice)
     end
     course.questions = Store.getQuestions(course)
     local next_lesson = Store.nextLesson(course, lesson.id)
-    push(QuizWidget:new{
+    pushWidget(QuizWidget:new{
         course = course,
         lesson = lesson,
         question_ids = ids,
@@ -202,7 +234,7 @@ end
 function Screens.startReviews(course)
     local state = State.load(course.id)
     course.flashcards = Store.getFlashcards(course)
-    push(ReviewWidget:new{
+    pushWidget(ReviewWidget:new{
         course = course,
         state = state,
     })
@@ -251,12 +283,9 @@ function Screens.reviewsFlow()
             callback = function() Screens.startReviews(course) end,
         }
     end
-    push(Menu:new{
+    pushMenu({
         title = _("Reviews — pick a course"),
         item_table = items,
-        covers_fullscreen = true,
-        is_borderless = true,
-        is_popout = false,
     })
 end
 
