@@ -151,6 +151,15 @@ function Plugin:_cleanHistory()
 end
 
 function Plugin:init()
+    -- TEMP probe: device geometry into crash.log — remove when exam layout is stable
+    local ok_probe, Screen = pcall(function() return require("device").screen end)
+    if ok_probe and Screen then
+        local _, dpi = pcall(function() return Screen:getDPI() end)
+        local _, scale16 = pcall(function() return Screen:scaleBySize(16) end)
+        logger.info(string.format(
+            "studyreader probe: screen %dx%d dpi=%s scale16=%s",
+            Screen:getWidth(), Screen:getHeight(), tostring(dpi), tostring(scale16)))
+    end
     self:_registerSimpleUIAction()
     self:_cleanHistory()
     UIManager:scheduleIn(5, function()

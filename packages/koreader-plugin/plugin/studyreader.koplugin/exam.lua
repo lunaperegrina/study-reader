@@ -184,9 +184,17 @@ function ExamWidget:_populate()
 
     -- measure only widgets that are never mutated afterwards: mutating a
     -- VerticalGroup after getSize() leaves stale _offsets and crashes paint
+    local header_h = header:getSize().h
+    local footer_h = footer:getSize().h
+    -- SAFETY: keep ~a line of slack so any drift between measured and
+    -- painted heights can never push the footer off the bottom edge
     local available = self.dimen.h - 2 * px(L.MARGIN)
-        - header:getSize().h - px(L.BODY_TOP_GAP)
-        - footer:getSize().h - px(L.FOOT_PAD_V)
+        - header_h - px(L.BODY_TOP_GAP)
+        - footer_h - px(L.FOOT_PAD_V) - px(12)
+    -- TEMP probe — remove when exam layout is stable
+    io.stderr:write(string.format(
+        "[exam probe] screen=%dx%d header=%d footer=%d available=%d\n",
+        self.dimen.w, self.dimen.h, header_h, footer_h, available))
 
     local gap = px(L.OPT_GAP)
     local pages = { { start_i = 1 } }
@@ -235,6 +243,10 @@ function ExamWidget:_populate()
     end
 
     local filler = math.max(px(L.FOOT_PAD_V), available - body_h + gap)
+    -- TEMP probe — remove when exam layout is stable
+    io.stderr:write(string.format(
+        "[exam probe] blocks=%d pages=%d page=%d body=%d filler=%d\n",
+        #blocks, page_count, self._page, body_h, filler))
     children[#children + 1] = vSpan(filler)
     children[#children + 1] = footer
 
@@ -365,43 +377,28 @@ function ExamWidget:_buildFooter(width)
     local index = self.session.current
     local total = #self.session.questionIds
     local is_last = index >= total
-    local gap = px(L.FOOT_GAP)
-    local third = math.floor((width - 2 * gap) / 3)
+    local third = math.floor((width - 2 * px(L.FOOT_GAP)) / 3)
 
-    -- labels stick to glyphs natively present in NotoSans (‹ ›): ☰/☐/☑ only
-    -- exist in the deepest fallback font on this device and render faintly,
-    -- so the palette button uses the appbar.menu icon instead
+    -- closest to the construction proven to paint on the device (plain text
+    -- buttons); icon buttons and preselect inversion made the whole footer
+    -- vanish silently, so they stay out until probed on-device
     local prev = Button:new{
         text = "‹ " .. _("Anterior"),
         width = third,
         enabled = index > 1,
-        avoid_text_truncation = false,
-        text_font_size = L.FS_FOOT,
-        padding_v = px(10),
-        bordersize = 1,
-        radius = px(6),
         callback = function() self:_go(index - 1) end,
         show_parent = self,
     }
     local palette = Button:new{
-        icon = "appbar.menu",
-        icon_width = px(L.FOOT_ICON),
-        icon_height = px(L.FOOT_ICON),
+        text = _("Questões"),
         width = third,
-        padding_v = px(10),
-        bordersize = 1,
-        radius = px(6),
         callback = function() self:_showPalette() end,
         show_parent = self,
     }
     local next = Button:new{
         text = is_last and _("Finalizar") or _("Próxima") .. " ›",
-        width = third,
-        avoid_text_truncation = false,
-        text_font_size = L.FS_FOOT,
-        padding_v = px(10),
-        bordersize = 0,
-        preselect = true, -- frame inversion: filled black, white label
+        width = width - 2 * third - 2 * px(L.FOOT_GAP),
+        bordersize = px(2),
         callback = function()
             if is_last then
                 self:_confirmFinish()
@@ -423,11 +420,10 @@ function ExamWidget:_buildFooter(width)
         },
         vSpan(L.FOOT_PAD_V),
         HorizontalGroup:new{
-            align = "center",
             prev,
-            HorizontalSpan:new{ width = gap },
+            HorizontalSpan:new{ width = px(L.FOOT_GAP) },
             palette,
-            HorizontalSpan:new{ width = gap },
+            HorizontalSpan:new{ width = px(L.FOOT_GAP) },
             next,
         },
     }
@@ -614,6 +610,15 @@ function ExamWidget:_showPalette()
             callback = function()
                 UIManager:close(self._palette)
                 self:_confirmFinish()
+            end,
+        },
+    }
+    rows[#rows + 1] = {
+        {
+            text = _("Exit exam"),
+            callback = function()
+                UIManager:close(self._palette)
+                self:onClose()
             end,
         },
     }
