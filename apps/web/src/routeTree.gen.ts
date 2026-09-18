@@ -12,8 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
-import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppLibraryRouteImport } from './routes/_app.library'
 import { Route as AppCreateRouteImport } from './routes/_app.create'
 import { Route as AppCoursesCourseIdRouteImport } from './routes/_app.courses.$courseId'
 import { Route as AppCoursesCourseIdIndexRouteImport } from './routes/_app.courses.$courseId.index'
@@ -34,14 +35,19 @@ const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppIndexRoute = AppIndexRouteImport.update({
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLibraryRoute = AppLibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCreateRoute = AppCreateRouteImport.update({
@@ -73,10 +79,11 @@ const AppCoursesCourseIdLessonLessonIdRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AppIndexRoute
+  '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/create': typeof AppCreateRoute
+  '/library': typeof AppLibraryRoute
   '/settings': typeof AppSettingsRoute
   '/courses/$courseId': typeof AppCoursesCourseIdRouteWithChildren
   '/courses/$courseId/reviews': typeof AppCoursesCourseIdReviewsRoute
@@ -84,23 +91,25 @@ export interface FileRoutesByFullPath {
   '/courses/$courseId/lesson/$lessonId': typeof AppCoursesCourseIdLessonLessonIdRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/create': typeof AppCreateRoute
+  '/library': typeof AppLibraryRoute
   '/settings': typeof AppSettingsRoute
-  '/': typeof AppIndexRoute
   '/courses/$courseId/reviews': typeof AppCoursesCourseIdReviewsRoute
   '/courses/$courseId': typeof AppCoursesCourseIdIndexRoute
   '/courses/$courseId/lesson/$lessonId': typeof AppCoursesCourseIdLessonLessonIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/_app/create': typeof AppCreateRoute
+  '/_app/library': typeof AppLibraryRoute
   '/_app/settings': typeof AppSettingsRoute
-  '/_app/': typeof AppIndexRoute
   '/_app/courses/$courseId': typeof AppCoursesCourseIdRouteWithChildren
   '/_app/courses/$courseId/reviews': typeof AppCoursesCourseIdReviewsRoute
   '/_app/courses/$courseId/': typeof AppCoursesCourseIdIndexRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/create'
+    | '/library'
     | '/settings'
     | '/courses/$courseId'
     | '/courses/$courseId/reviews'
@@ -120,22 +130,24 @@ export interface FileRouteTypes {
     | '/courses/$courseId/lesson/$lessonId'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/login'
     | '/register'
     | '/create'
+    | '/library'
     | '/settings'
-    | '/'
     | '/courses/$courseId/reviews'
     | '/courses/$courseId'
     | '/courses/$courseId/lesson/$lessonId'
   id:
     | '__root__'
+    | '/'
     | '/_app'
     | '/login'
     | '/register'
     | '/_app/create'
+    | '/_app/library'
     | '/_app/settings'
-    | '/_app/'
     | '/_app/courses/$courseId'
     | '/_app/courses/$courseId/reviews'
     | '/_app/courses/$courseId/'
@@ -143,6 +155,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
@@ -171,18 +184,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/': {
-      id: '/_app/'
+    '/': {
+      id: '/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof AppIndexRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/settings': {
       id: '/_app/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/library': {
+      id: '/_app/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof AppLibraryRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/create': {
@@ -240,21 +260,22 @@ const AppCoursesCourseIdRouteWithChildren =
 
 interface AppRouteChildren {
   AppCreateRoute: typeof AppCreateRoute
+  AppLibraryRoute: typeof AppLibraryRoute
   AppSettingsRoute: typeof AppSettingsRoute
-  AppIndexRoute: typeof AppIndexRoute
   AppCoursesCourseIdRoute: typeof AppCoursesCourseIdRouteWithChildren
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppCreateRoute: AppCreateRoute,
+  AppLibraryRoute: AppLibraryRoute,
   AppSettingsRoute: AppSettingsRoute,
-  AppIndexRoute: AppIndexRoute,
   AppCoursesCourseIdRoute: AppCoursesCourseIdRouteWithChildren,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,

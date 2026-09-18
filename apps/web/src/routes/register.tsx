@@ -29,7 +29,7 @@ function RegisterPage() {
 			setError(t("register.failed"))
 			return
 		}
-		navigate({ to: "/" })
+		navigate({ to: "/library" })
 	}
 
 	return (

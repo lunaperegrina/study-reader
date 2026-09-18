@@ -48,7 +48,7 @@ function CoursePage() {
 
 	return (
 		<section>
-			<Link to="/">{t("course.back")}</Link>
+			<Link to="/library">{t("course.back")}</Link>
 			<div
 				style={{
 					display: "flex",

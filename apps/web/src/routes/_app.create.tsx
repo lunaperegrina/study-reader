@@ -272,7 +272,7 @@ function CreatePage() {
 					) : error ? (
 						<div style={{ display: "flex", gap: "var(--ink-space-2)", flexWrap: "wrap" }}>
 							<InkButton label={t("create.backToOutline")} onClick={() => setStep("outline")} />
-							<Link to="/" style={{ textDecoration: "none" }}>
+							<Link to="/library" style={{ textDecoration: "none" }}>
 								<InkButton label={t("course.back")} />
 							</Link>
 						</div>

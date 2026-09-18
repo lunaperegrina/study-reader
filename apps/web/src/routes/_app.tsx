@@ -38,7 +38,7 @@ function AppLayout() {
 						gap: "var(--ink-space-3)",
 					}}
 				>
-					<Link to="/">{t("nav.library")}</Link>
+					<Link to="/library">{t("nav.library")}</Link>
 					<Link to="/settings">{t("nav.settings")}</Link>
 					<InkButton label={t("nav.logout")} onClick={handleLogout} />
 				</nav>

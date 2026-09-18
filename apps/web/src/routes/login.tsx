@@ -28,7 +28,7 @@ export function LoginPage() {
 			setError(t("login.failed"))
 			return
 		}
-		navigate({ to: "/" })
+		navigate({ to: "/library" })
 	}
 
 	return (

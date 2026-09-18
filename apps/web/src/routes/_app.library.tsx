@@ -9,7 +9,7 @@ import {
 } from "@/queries/courses"
 import { t } from "@/locales/pt-BR"
 
-export const Route = createFileRoute("/_app/")({
+export const Route = createFileRoute("/_app/library")({
 	component: LibraryPage,
 })
 
