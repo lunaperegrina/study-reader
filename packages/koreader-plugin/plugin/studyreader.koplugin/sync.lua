@@ -17,15 +17,27 @@ local Sync = {}
 
 local API = "/api/v1"
 
--- ssl.https/ltn12 only exist inside KOReader; loaded lazily so this module
--- stays loadable in standalone luajit tests.
-local function http_client()
-    local ok_https, https = pcall(require, "ssl.https")
+-- socket.http/ssl.https/ltn12 only exist inside KOReader; loaded lazily so
+-- this module stays loadable in standalone luajit tests. ssl.https ALWAYS
+-- negotiates TLS (even for http:// URLs — "tlsv1 alert protocol version"
+-- against a plain server), so the client is picked by URL scheme.
+local function http_client(url)
     local ok_ltn12, ltn12 = pcall(require, "ltn12")
-    if not ok_https or not ok_ltn12 then
-        return nil, "HTTPS indisponível neste ambiente"
+    if not ok_ltn12 then
+        return nil, nil, "HTTP indisponível neste ambiente"
     end
-    return https, ltn12
+    if url:match("^https:") then
+        local ok_https, https = pcall(require, "ssl.https")
+        if not ok_https then
+            return nil, nil, "HTTPS indisponível neste ambiente"
+        end
+        return https.request, ltn12, nil
+    end
+    local ok_http, http = pcall(require, "socket.http")
+    if not ok_http then
+        return nil, nil, "HTTP indisponível neste ambiente"
+    end
+    return http.request, ltn12, nil
 end
 
 function Sync.configPath()
@@ -72,8 +84,9 @@ local function trim_trailing_slash(server)
 end
 
 local function request(config, method, path, body)
-    local https, ltn12, unavailable = http_client()
-    if not https then return nil, unavailable end
+    local url = config.server .. path
+    local request_fn, ltn12, unavailable = http_client(url)
+    if not request_fn then return nil, unavailable end
 
     local chunks = {}
     local headers = {
@@ -84,8 +97,8 @@ local function request(config, method, path, body)
         headers["Content-Type"] = "application/json"
         headers["Content-Length"] = tostring(#body)
     end
-    local ok, status = https.request({
-        url = config.server .. path,
+    local ok, status = request_fn({
+        url = url,
         method = method,
         headers = headers,
         source = body and ltn12.source.string(body) or nil,
@@ -113,13 +126,14 @@ local function request_json(config, method, path, payload)
 end
 
 local function pair_request(server, code, name)
-    local https, ltn12, unavailable = http_client()
-    if not https then return nil, unavailable end
+    local url = trim_trailing_slash(server) .. API .. "/devices/pair"
+    local request_fn, ltn12, unavailable = http_client(url)
+    if not request_fn then return nil, unavailable end
 
     local chunks = {}
     local body = JSON.encode({ code = code, name = name })
-    local ok, status = https.request({
-        url = trim_trailing_slash(server) .. API .. "/devices/pair",
+    local ok, status = request_fn({
+        url = url,
         method = "POST",
         headers = {
             ["Content-Type"] = "application/json",
@@ -169,8 +183,9 @@ function Sync.downloadCourse(course_id)
     local config = Sync.loadConfig()
     if not config then return nil, "dispositivo não pareado" end
 
-    local https, ltn12, unavailable = http_client()
-    if not https then return nil, unavailable end
+    local url = string.format("%s%s/sync/courses/%s/package", config.server, API, course_id)
+    local request_fn, ltn12, unavailable = http_client(url)
+    if not request_fn then return nil, unavailable end
 
     local dir = Sync.coursesDir()
     if lfs.attributes(dir, "mode") ~= "directory" then
@@ -179,8 +194,8 @@ function Sync.downloadCourse(course_id)
     local dest = string.format("%s/%s.study", dir, course_id)
 
     local chunks = {}
-    local ok, status = https.request({
-        url = string.format("%s%s/sync/courses/%s/package", config.server, API, course_id),
+    local ok, status = request_fn({
+        url = url,
         method = "GET",
         headers = { ["Authorization"] = "Bearer " .. config.token },
         sink = ltn12.sink.table(chunks),
