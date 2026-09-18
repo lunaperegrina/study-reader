@@ -31,7 +31,17 @@ local function dirExists(path)
 end
 
 local function ensureDir(path)
-    lfs.mkdir(path)
+    if lfs.attributes(path, "mode") == "directory" then return true end
+    local parent = path:match("^(.*)/[^/]+$")
+    if parent and parent ~= "" and lfs.attributes(parent, "mode") ~= "directory" then
+        ensureDir(parent)
+    end
+    local ok, err = lfs.mkdir(path)
+    if not ok and lfs.attributes(path, "mode") ~= "directory" then
+        logger.warn("studyreader: cannot create dir", path, err)
+        return false
+    end
+    return true
 end
 
 local function plainReplace(haystack, old, new)
@@ -82,18 +92,29 @@ function Store.listCourses()
     return courses
 end
 
-local function readEntry(path, entry)
+local function readEntries(path, names)
     local arc = Archiver.Reader:new()
     if not arc:open(path) then
         return nil, "cannot open archive"
     end
-    local content = arc:extractToMemory(entry)
-    local err = arc.err
-    arc:close()
-    if not content then
-        return nil, err or ("cannot read entry " .. entry)
+    for _ in arc:iterate() do end
+    local out = {}
+    for _, name in ipairs(names) do
+        out[name] = arc:extractToMemory(name)
     end
-    return content
+    arc:close()
+    return out
+end
+
+local function readEntry(path, entry)
+    local out, err = readEntries(path, { entry })
+    if not out then
+        return nil, err
+    end
+    if not out[entry] then
+        return nil, "cannot read entry " .. entry
+    end
+    return out[entry]
 end
 
 function Store.open(path, mtime)
@@ -101,9 +122,17 @@ function Store.open(path, mtime)
     if cached and cached.mtime == mtime then
         return cached.course
     end
-    local manifest_raw, err = readEntry(path, "manifest.json")
-    if not manifest_raw then
+    local contents, err = readEntries(path, {
+        "manifest.json",
+        "questions/questions.json",
+        "flashcards/flashcards.json",
+    })
+    if not contents then
         return nil, err
+    end
+    local manifest_raw = contents["manifest.json"]
+    if not manifest_raw then
+        return nil, "missing manifest.json"
     end
     local ok, manifest = pcall(JSON.decode, manifest_raw)
     if not ok or type(manifest) ~= "table" then
@@ -116,14 +145,14 @@ function Store.open(path, mtime)
     end
 
     local questions = {}
-    local questions_raw = readEntry(path, "questions/questions.json")
+    local questions_raw = contents["questions/questions.json"]
     if questions_raw then
         ok, questions = pcall(JSON.decode, questions_raw)
         if not ok or type(questions) ~= "table" then questions = {} end
     end
 
     local flashcards = {}
-    local flashcards_raw = readEntry(path, "flashcards/flashcards.json")
+    local flashcards_raw = contents["flashcards/flashcards.json"]
     if flashcards_raw then
         ok, flashcards = pcall(JSON.decode, flashcards_raw)
         if not ok or type(flashcards) ~= "table" then flashcards = {} end
@@ -179,6 +208,7 @@ local function extractAsset(course, asset_path, images_dir)
     if fileExists(dest) then return dest end
     local arc = Archiver.Reader:new()
     if not arc:open(course.path) then return nil end
+    for _ in arc:iterate() do end
     local ok = arc:extractToPath(asset_path, dest)
     if not ok then
         logger.warn("studyreader: extractAsset failed:", asset_path, arc.err)

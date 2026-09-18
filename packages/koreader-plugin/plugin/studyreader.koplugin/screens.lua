@@ -5,6 +5,7 @@ local InfoMessage = require("ui/widget/infomessage")
 local Menu = require("ui/widget/menu")
 local ReaderUI = require("apps/reader/readerui")
 local UIManager = require("ui/uimanager")
+local logger = require("logger")
 local _ = require("gettext")
 
 local QuizWidget = require("quiz")
@@ -58,6 +59,7 @@ function Screens.myCourses()
                 callback = function() Screens.courseMenu(course) end,
             }
         else
+            logger.warn("studyreader: cannot open course", entry.path, err)
             items[#items + 1] = {
                 text = string.format("%s (error)", entry.name),
                 select_enabled = false,
