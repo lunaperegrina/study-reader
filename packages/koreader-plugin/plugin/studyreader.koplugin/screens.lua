@@ -5,6 +5,7 @@ the quiz is offered at the end of the lesson (see main.lua) and chains into
 the next lesson from the quiz summary.
 ]]
 
+local ButtonDialog = require("ui/widget/buttondialog")
 local InfoMessage = require("ui/widget/infomessage")
 local Menu = require("ui/widget/menu")
 local ReaderUI = require("apps/reader/readerui")
@@ -14,6 +15,8 @@ local _ = require("gettext")
 
 local QuizWidget = require("quiz")
 local ReviewWidget = require("review")
+local ExamWidget = require("exam")
+local ExamCore = require("examcore")
 local State = require("state")
 local Store = require("store")
 
@@ -41,6 +44,35 @@ local function pushMenu(props)
     end
     UIManager:show(menu)
     return menu
+end
+
+local function pickDialog(title, options, on_pick)
+    local dialog
+    local row = {}
+    local rows = {}
+    for _, option in ipairs(options) do
+        row[#row + 1] = {
+            text = option,
+            callback = function()
+                UIManager:close(dialog)
+                on_pick(option)
+            end,
+        }
+        if #row == 3 then
+            rows[#rows + 1] = row
+            row = {}
+        end
+    end
+    if #row > 0 then
+        rows[#rows + 1] = row
+    end
+    dialog = ButtonDialog:new{
+        title = title,
+        title_align = "center",
+        buttons = rows,
+    }
+    UIManager:show(dialog)
+    return dialog
 end
 
 local function pushChildMenu(props)
@@ -139,19 +171,57 @@ end
 
 function Screens.courseMenu(course)
     local state = State.load(course.id)
+    course.questions = Store.getQuestions(course)
 
-    local due = 0
+    local bank_count = 0
+    for _ in pairs(course.questions) do
+        bank_count = bank_count + 1
+    end
+
+    local items = {}
+    if bank_count > 0 then
+        local exams = State.loadExams(course.id)
+        local active = State.activeExam(exams)
+        if active then
+            local answered = 0
+            for _ in pairs(active.answers or {}) do
+                answered = answered + 1
+            end
+            items[#items + 1] = {
+                text = string.format(_("Resume exam (%d/%d answered)"),
+                    answered, #active.questionIds),
+                callback = function()
+                    Screens.resumeExam(course, exams, active)
+                end,
+            }
+        end
+        items[#items + 1] = {
+            text = string.format(_("Practice exam (%d questions)"), bank_count),
+            callback = function() Screens.newExam(course, bank_count) end,
+        }
+        local done_count = 0
+        for _, session in ipairs(exams.sessions) do
+            if session.status == "done" then
+                done_count = done_count + 1
+            end
+        end
+        if done_count > 0 then
+            items[#items + 1] = {
+                text = string.format(_("Exam history (%d)"), done_count),
+                callback = function() Screens.examHistory(course) end,
+            }
+        end
+        items[#items + 1] = { text = "—", select_enabled = false, separator = true }
+    end
+
     local deck = Store.getFlashcards(course)
+    local due = 0
     if #deck > 0 then
         local SRS = require("srs")
         for _, card in ipairs(deck) do
             local schedule = state.reviews[card.id] or SRS.newCard()
             if SRS.isDue(schedule) then due = due + 1 end
         end
-    end
-
-    local items = {}
-    if #deck > 0 then
         items[#items + 1] = {
             text = string.format(_("Reviews (%d due)"), due),
             callback = function() Screens.startReviews(course) end,
@@ -168,6 +238,96 @@ function Screens.courseMenu(course)
 
     pushChildMenu({
         title = course.manifest.title or course.id,
+        item_table = items,
+    })
+end
+
+function Screens.newExam(course, bank_count)
+    local counts = {}
+    for _, n in ipairs({ 5, 10, 25, 50 }) do
+        if n < bank_count then
+            counts[#counts + 1] = tostring(n)
+        end
+    end
+    counts[#counts + 1] = _("All")
+    pickDialog(_("How many questions?"), counts, function(choice)
+        local count = choice == _("All") and bank_count or tonumber(choice)
+        local default_min = math.max(1, math.floor(count * 1.5))
+        pickDialog(string.format(_("Timer for %d questions?"), count),
+            { string.format(_("On — %d min"), default_min), _("Off") },
+            function(timer_choice)
+                local limit = timer_choice ~= _("Off")
+                    and default_min * 60 or 0
+                Screens.startExam(course, count, limit)
+            end)
+    end)
+end
+
+function Screens.startExam(course, count, limit_sec)
+    local exams = State.loadExams(course.id)
+    local bank = {}
+    for id in pairs(course.questions) do
+        bank[#bank + 1] = id
+    end
+    local previous = State.activeExam(exams)
+    if previous then
+        previous.status = "abandoned"
+    end
+    local session = {
+        id = os.time(),
+        questionIds = ExamCore.sample(bank, count),
+        answers = {},
+        current = 1,
+        startedAt = os.time(),
+        elapsed = 0,
+        limitSec = limit_sec,
+        status = "active",
+    }
+    session.resumedAt = os.time()
+    session.elapsedBeforeResume = 0
+    exams.sessions[#exams.sessions + 1] = session
+    State.saveExams(course.id, exams)
+    Screens.closeAll()
+    pushWidget(ExamWidget:new{
+        course = course,
+        exams = exams,
+        session = session,
+    })
+end
+
+function Screens.resumeExam(course, exams, session)
+    session.resumedAt = os.time()
+    session.elapsedBeforeResume = session.elapsed or 0
+    State.saveExams(course.id, exams)
+    Screens.closeAll()
+    pushWidget(ExamWidget:new{
+        course = course,
+        exams = exams,
+        session = session,
+    })
+end
+
+function Screens.examHistory(course)
+    local exams = State.loadExams(course.id)
+    local items = {}
+    for i = #exams.sessions, 1, -1 do
+        local session = exams.sessions[i]
+        if session.status == "done" and session.result then
+            local verdict = session.result.passed and "✓" or "✗"
+            items[#items + 1] = {
+                text = string.format("%s %d%% · %s · %d/%d",
+                    verdict, session.result.score,
+                    os.date("%d/%m %H:%M", session.result.finishedAt),
+                    session.result.correct, session.result.total),
+                select_enabled = false,
+            }
+        end
+    end
+    if #items == 0 then
+        items[#items + 1] = { text = _("No finished exams yet."), select_enabled = false }
+    end
+    pushMenu({
+        title = _("Exam history"),
         item_table = items,
     })
 end

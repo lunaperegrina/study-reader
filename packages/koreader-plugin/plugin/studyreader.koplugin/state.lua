@@ -90,6 +90,28 @@ function State.getLastCourse()
     return readJsonFile(dataRoot() .. "/last.json")
 end
 
+function State.loadExams(course_id)
+    local exams = readJsonFile(State.courseDir(course_id) .. "/exams.json")
+    if type(exams) == "table" and type(exams.sessions) == "table" then
+        return exams
+    end
+    return { sessions = {} }
+end
+
+function State.saveExams(course_id, exams)
+    ensureDir(State.courseDir(course_id))
+    writeJsonFile(State.courseDir(course_id) .. "/exams.json", exams)
+end
+
+function State.activeExam(exams)
+    for i = #exams.sessions, 1, -1 do
+        if exams.sessions[i].status == "active" then
+            return exams.sessions[i]
+        end
+    end
+    return nil
+end
+
 function State.completedLesson(state, lesson_id)
     return state.progress.completedLessons
         and state.progress.completedLessons[lesson_id] == true
