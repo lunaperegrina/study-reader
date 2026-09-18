@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { type ChangeEvent, useRef, useState } from "react"
+import { useState } from "react"
 import type { CourseSummary } from "@study-reader/contracts"
-import { InkButton, InkCard } from "@/components/ink"
+import { InkButton, InkCard, InkFileButton } from "@/components/ink"
 import {
 	useCoursesQuery,
 	useDeleteCourseMutation,
@@ -17,12 +17,9 @@ function LibraryPage() {
 	const coursesQuery = useCoursesQuery()
 	const uploadMutation = useUploadCourseMutation()
 	const deleteMutation = useDeleteCourseMutation()
-	const fileInputRef = useRef<HTMLInputElement>(null)
 	const [uploadError, setUploadError] = useState<string | null>(null)
 
-	async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-		const input = event.target
-		const file = input.files?.[0]
+	async function handleFile(file: File | undefined) {
 		if (!file) return
 		setUploadError(null)
 		try {
@@ -36,7 +33,6 @@ function LibraryPage() {
 				}),
 			)
 		}
-		input.value = ""
 	}
 
 	function handleDelete(course: CourseSummary) {
@@ -58,25 +54,19 @@ function LibraryPage() {
 			>
 				<h1 className="ink-title ink-title--1">{t("library.title")}</h1>
 				<div style={{ display: "flex", alignItems: "center", gap: "var(--ink-space-3)" }}>
-					<InkButton
+					<InkFileButton
 						variant="primary"
 						label={
 							uploadMutation.isPending
 								? t("library.uploading")
 								: t("library.upload")
 						}
-						onClick={() => fileInputRef.current?.click()}
+						accept=".study,application/zip"
+						onFileChange={(file) => void handleFile(file)}
 					/>
 					<Link to="/create" style={{ textDecoration: "none" }}>
 						<InkButton label={t("library.createWithAi")} />
 					</Link>
-					<input
-						ref={fileInputRef}
-						type="file"
-						accept=".study,application/zip"
-						style={{ display: "none" }}
-						onChange={handleFileChange}
-					/>
 				</div>
 			</div>
 

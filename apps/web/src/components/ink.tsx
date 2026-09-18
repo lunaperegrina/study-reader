@@ -44,6 +44,41 @@ export function InkInput({ label, onValueChange, ...rest }: InkInputProps) {
 	)
 }
 
+type InkFileButtonProps = Omit<
+	InputHTMLAttributes<HTMLInputElement>,
+	"type" | "onChange" | "value"
+> & {
+	label: ReactNode
+	variant?: "primary" | "default"
+	onFileChange: (file: File | undefined) => void
+}
+
+export function InkFileButton({
+	label,
+	variant,
+	onFileChange,
+	...rest
+}: InkFileButtonProps) {
+	return (
+		<label
+			className={
+				variant === "primary" ? "sr-button sr-button--primary" : "sr-button"
+			}
+		>
+			{label}
+			<input
+				type="file"
+				onChange={(event) => {
+					onFileChange(event.target.files?.[0])
+					event.target.value = ""
+				}}
+				hidden
+				{...rest}
+			/>
+		</label>
+	)
+}
+
 type InkCardProps = {
 	children: ReactNode
 	style?: CSSProperties

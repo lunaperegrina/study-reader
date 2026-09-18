@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { useRef, useState } from "react"
+import { useState } from "react"
 import type { Outline } from "@study-reader/contracts"
-import { InkButton, InkCard, InkInput } from "@/components/ink"
+import { InkButton, InkCard, InkFileButton, InkInput } from "@/components/ink"
 import {
 	extractPdfText,
 	useAssembleMutation,
@@ -30,7 +30,6 @@ function CreatePage() {
 	const [outline, setOutline] = useState<Outline | null>(null)
 	const [statuses, setStatuses] = useState<LessonStatus[]>([])
 	const [error, setError] = useState<string | null>(null)
-	const fileInputRef = useRef<HTMLInputElement>(null)
 
 	const allLessons = outline?.modules.flatMap((module) => module.lessons) ?? []
 
@@ -184,21 +183,14 @@ function CreatePage() {
 							onChange={(event) => setSourceText(event.target.value)}
 							style={{ fontFamily: "var(--ink-sans)" }}
 						/>
-						<div style={{ display: "flex", alignItems: "center", gap: "var(--ink-space-3)", flexWrap: "wrap" }}>
-							<InkButton label={t("create.orFile")} onClick={() => fileInputRef.current?.click()} />
-							{sourceName ? <span className="ink-text ink-text--caption">{sourceName}</span> : null}
-							<input
-								ref={fileInputRef}
-								type="file"
-								accept=".md,.mdx,.txt,.pdf"
-								style={{ display: "none" }}
-								onChange={(event) => {
-									const file = event.target.files?.[0]
-									if (file) void handleFile(file)
-									event.target.value = ""
-								}}
-							/>
-						</div>
+							<div style={{ display: "flex", alignItems: "center", gap: "var(--ink-space-3)", flexWrap: "wrap" }}>
+								<InkFileButton
+									label={t("create.orFile")}
+									accept=".md,.mdx,.txt,.pdf"
+									onFileChange={(file) => file && void handleFile(file)}
+								/>
+								{sourceName ? <span className="ink-text ink-text--caption">{sourceName}</span> : null}
+							</div>
 						<div>
 							<InkButton
 								variant="primary"
