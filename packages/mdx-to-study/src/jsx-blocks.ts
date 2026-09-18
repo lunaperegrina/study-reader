@@ -8,7 +8,7 @@ export type SourceQuizQuestion = {
 	code?: string;
 	multiple?: boolean;
 	options: string[];
-	answer: number[];
+	answer: number | number[];
 	explanation: string;
 };
 
@@ -49,7 +49,8 @@ export function toStudyQuestions(
 ): Array<{ id: string; question: StudyQuestion }> {
 	return source.map((q, index) => {
 		const options = optionsWithIds(q.options);
-		const correct = q.answer.map((n) => {
+		const answers = Array.isArray(q.answer) ? q.answer : [q.answer];
+		const correct = answers.map((n) => {
 			const option = options[n];
 			if (!option) {
 				throw new Error(`answer index ${n} out of range in ${idPrefix}`);
@@ -68,7 +69,7 @@ export function toStudyQuestions(
 				...(q.code ? { code: q.code } : {}),
 				options,
 				correct,
-				explanation: q.explanation,
+				...(q.explanation ? { explanation: q.explanation } : {}),
 			},
 		};
 	});

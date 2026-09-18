@@ -59,7 +59,13 @@ async function findCover(sourceRoot: string): Promise<string | undefined> {
 export async function convertCourse(
 	options: ConvertOptions,
 ): Promise<ConvertResult> {
-	const plan = await readCoursePlan(options.sourceRoot, options.contentDir);
+	const plan = await readCoursePlan(
+		options.sourceRoot,
+		options.contentDir,
+	);
+	if (plan.modules.length === 0) {
+		throw new Error(`no modules found under ${options.sourceRoot}`);
+	}
 	const files: StudyFile[] = [];
 	const lessonContent: Record<string, string> = {};
 	const questions: QuestionBank = {};
@@ -76,7 +82,7 @@ export async function convertCourse(
 			lessonCount += 1;
 			const mdxPath = lessonMdxPath(
 				options.sourceRoot,
-				options.contentDir,
+				plan.isEpubLayout ? "" : options.contentDir,
 				sourceLesson,
 			);
 			const mdx = await readFile(mdxPath, "utf8");
