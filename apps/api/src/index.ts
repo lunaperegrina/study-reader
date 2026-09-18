@@ -2,7 +2,7 @@ import { cors } from "@elysiajs/cors"
 import { Elysia } from "elysia"
 import { AppError } from "./error"
 import { auth } from "./lib/auth/auth"
-import { getAllowedOriginsFromEnv } from "./lib/env"
+import { getAllowedOriginsFromEnv, isLoopbackOrigin } from "./lib/env"
 import { createRateLimiter } from "./lib/rate-limit"
 import { ApiRoutes } from "./routes"
 
@@ -10,7 +10,7 @@ const isProduction = process.env.NODE_ENV === "production"
 const allowedOrigins = getAllowedOriginsFromEnv(process.env.API_ALLOWED_ORIGINS)
 
 function isOriginAllowed(origin: string) {
-	if (origin === "http://localhost" && !isProduction) return true
+	if (!isProduction && isLoopbackOrigin(origin)) return true
 	return allowedOrigins.includes(origin)
 }
 
