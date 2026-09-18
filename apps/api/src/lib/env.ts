@@ -1,6 +1,6 @@
 export type AllowedOrigin = string
 
-const loopbackOriginPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/
+export const loopbackOriginPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/
 
 export function isLoopbackOrigin(origin: string) {
 	return loopbackOriginPattern.test(origin)
