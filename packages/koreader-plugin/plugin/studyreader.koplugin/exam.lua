@@ -175,17 +175,16 @@ function ExamWidget:_populate()
     self.layout = {}
     local width = self:width()
 
-    local group = VerticalGroup:new{ align = "left" }
-    group[#group + 1] = self:_buildHeader(width)
-    group[#group + 1] = vSpan(L.BODY_TOP_GAP)
-
-    local blocks = self:_buildQuestionBlocks(width)
-    local header_h = group:getSize().h + px(L.BODY_TOP_GAP)
+    local header = self:_buildHeader(width)
     local footer = self:_buildFooter(width)
-    local available = self.dimen.h - 2 * px(L.MARGIN) - header_h
+    local blocks = self:_buildQuestionBlocks(width)
+
+    -- measure only widgets that are never mutated afterwards: mutating a
+    -- VerticalGroup after getSize() leaves stale _offsets and crashes paint
+    local available = self.dimen.h - 2 * px(L.MARGIN)
+        - header:getSize().h - px(L.BODY_TOP_GAP)
         - footer:getSize().h - px(L.FOOT_PAD_V)
 
-    -- paginate blocks that do not fit; footer stays pinned below
     local gap = px(L.OPT_GAP)
     local pages = { { start_i = 1 } }
     local page_count = 1
@@ -206,11 +205,12 @@ function ExamWidget:_populate()
     local stop = self._page < page_count and (pages[self._page + 1].start_i - 1)
         or #blocks
     local body_h = 0
+    local children = { header, vSpan(L.BODY_TOP_GAP) }
     for i = pages[self._page].start_i, stop do
         if body_h > 0 then
-            group[#group + 1] = vSpan(L.OPT_GAP)
+            children[#children + 1] = vSpan(L.OPT_GAP)
         end
-        group[#group + 1] = blocks[i]
+        children[#children + 1] = blocks[i]
         body_h = body_h + blocks[i]:getSize().h + gap
     end
     if self._page < page_count then
@@ -226,14 +226,19 @@ function ExamWidget:_populate()
             show_parent = self,
         }
         self.layout[#self.layout + 1] = { more }
-        group[#group + 1] = vSpan(L.OPT_GAP)
-        group[#group + 1] = more
-        body_h = body_h + px(L.OPT_GAP) + more:getSize().h
+        children[#children + 1] = vSpan(L.OPT_GAP)
+        children[#children + 1] = more
+        body_h = body_h + gap + more:getSize().h
     end
 
-    local filler = math.max(px(L.FOOT_PAD_V), available - body_h)
-    group[#group + 1] = vSpan(filler)
-    group[#group + 1] = footer
+    local filler = math.max(px(L.FOOT_PAD_V), available - body_h + gap)
+    children[#children + 1] = vSpan(filler)
+    children[#children + 1] = footer
+
+    local group = VerticalGroup:new{ align = "left" }
+    for i = 1, #children do
+        group[i] = children[i]
+    end
 
     self[1] = FrameContainer:new{
         background = Blitbuffer.COLOR_WHITE,
@@ -492,14 +497,19 @@ function ExamWidget:_populateLegacy()
         end
     end
 
-    local filler = math.max(0, self.dimen.h - group:getSize().h - 3 * padding)
-    group[#group + 1] = vSpan(filler)
+    local content_h = group:getSize().h
+    local filler = math.max(0, self.dimen.h - content_h - 3 * padding)
+    local final = VerticalGroup:new{ align = "left" }
+    for i = 1, #group do
+        final[i] = group[i]
+    end
+    final[#final + 1] = vSpan(filler)
     self[1] = FrameContainer:new{
         background = Blitbuffer.COLOR_WHITE,
         bordersize = 0,
         margin = 0,
         padding = padding,
-        group,
+        final,
     }
     self:refocusWidget()
     UIManager:setDirty(self, "ui")
