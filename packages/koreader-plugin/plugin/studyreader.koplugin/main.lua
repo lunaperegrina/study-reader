@@ -80,11 +80,23 @@ function Plugin:_handleStudyLink(url)
                 break
             end
         end
-        if module then
-            Screens.moduleMenu(active.course, module)
-            return true
+        if not module then
+            return false
         end
-        return false
+        local course = active.course
+        Screens.active = nil
+        local plugin = self
+        UIManager:scheduleIn(0.1, function()
+            if plugin.ui and plugin.ui.onClose then
+                pcall(function()
+                    plugin.ui:onClose()
+                end)
+            end
+            Screens.myCourses()
+            Screens.courseMenu(course)
+            Screens.moduleMenu(course, module)
+        end)
+        return true
     end
     return false
 end
@@ -150,6 +162,10 @@ function Plugin:onReaderReady()
     self:_registerSimpleUIAction()
     self:_patchReaderLink()
     self:_cleanHistory()
+end
+
+function Plugin:onCloseDocument()
+    Screens.active = nil
 end
 
 function Plugin:_finishActiveLesson()
