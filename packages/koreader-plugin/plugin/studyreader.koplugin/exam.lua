@@ -52,7 +52,9 @@ end
 local GRAY = Blitbuffer.COLOR_GRAY
 local DARK_GRAY = Blitbuffer.COLOR_DARK_GRAY
 
--- layout tokens
+-- layout tokens. Font sizes are RAW: Font:getFace applies screen-DPI scaling
+-- internally (font.lua), so scaling here again would double-scale. Only
+-- spatial values (margins, gaps, paddings) go through px().
 local L = {
     MARGIN = 16,
     HEADER_GAP = 4,
@@ -67,10 +69,10 @@ local L = {
     FS_HEADER = 15,
     FS_SUB = 12,
     FS_TIMER = 20,
-    FS_CATEGORY = 13,
-    FS_QUESTION = 23,
+    FS_CATEGORY = 12,
+    FS_QUESTION = 22,
     FS_OPTION = 19,
-    FS_FOOT = 17,
+    FS_FOOT = 15,
 }
 
 function ExamWidget:init()
@@ -154,7 +156,7 @@ local function textBox(text, size, width, opts)
     opts = opts or {}
     return TextBoxWidget:new{
         text = text,
-        face = Font:getFace(opts.face or "cfont", px(size)),
+        face = Font:getFace(opts.face or "cfont", size),
         width = width,
         bold = opts.bold or false,
         fgcolor = opts.fgcolor or Blitbuffer.COLOR_BLACK,
@@ -422,7 +424,7 @@ function ExamWidget:_populateLegacy()
         opts = opts or {}
         group[#group + 1] = TextBoxWidget:new{
             text = text,
-            face = Font:getFace("cfont", px(size)),
+            face = Font:getFace("cfont", size),
             width = width,
             bold = opts.bold or false,
             fgcolor = opts.fgcolor or Blitbuffer.COLOR_BLACK,
