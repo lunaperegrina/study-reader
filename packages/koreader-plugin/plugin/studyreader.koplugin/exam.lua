@@ -97,7 +97,10 @@ function ExamWidget:init()
     -- propagated events before the parent handles them)
     self.ges_events = {
         TapOption = {
-            GestureRange:new{ ges = "tap", range = self.dimen },
+            GestureRange:new{
+                ges = "tap",
+                range = function() return self.dimen end,
+            },
         },
     }
     self.mode = "question"
@@ -208,18 +211,30 @@ function ExamWidget:_populate()
     local available = self.dimen.h - 2 * px(L.MARGIN)
         - header_h - px(L.BODY_TOP_GAP)
         - footer_h - px(L.FOOT_PAD_V) - px(12)
-    -- TEMP probe — remove when exam layout is stable
-    io.stderr:write(string.format(
-        "[exam probe] screen=%dx%d header=%d footer=%d available=%d\n",
-        self.dimen.w, self.dimen.h, header_h, footer_h, available))
 
     local gap = px(L.OPT_GAP)
+    -- the Ver-mais button is appended below the last block of every non-final
+    -- page, so its height must be part of the pagination budget — otherwise
+    -- the page + button exceed the available height and push the footer
+    -- below the bottom edge of the screen
+    local more = Button:new{
+        text = _("Ver mais alternativas") .. " …",
+        width = width,
+        align = "center",
+        padding_v = px(10),
+        callback = function()
+            self._page = self._page + 1
+            self:_populate()
+        end,
+        show_parent = self,
+    }
+    local budget = available - (gap + more:getSize().h)
     local pages = { { start_i = 1 } }
     local page_count = 1
     local used = 0
     for i, block in ipairs(blocks) do
         local h = block:getSize().h + gap
-        if used > 0 and used + h > available then
+        if used > 0 and used + h > budget then
             page_count = page_count + 1
             pages[page_count] = { start_i = i }
             used = 0
@@ -263,17 +278,6 @@ function ExamWidget:_populate()
     end
     self._option_rects = rects
     if self._page < page_count then
-        local more = Button:new{
-            text = _("Ver mais alternativas") .. " …",
-            width = width,
-            align = "center",
-            padding_v = px(10),
-            callback = function()
-                self._page = self._page + 1
-                self:_populate()
-            end,
-            show_parent = self,
-        }
         self.layout[#self.layout + 1] = { more }
         children[#children + 1] = vSpan(L.OPT_GAP)
         children[#children + 1] = more
@@ -281,18 +285,15 @@ function ExamWidget:_populate()
     end
 
     local filler = math.max(px(L.FOOT_PAD_V), available - body_h + gap)
-    -- TEMP probe — remove when exam layout is stable
-    io.stderr:write(string.format(
-        "[exam probe] blocks=%d pages=%d page=%d body=%d filler=%d\n",
-        #blocks, page_count, self._page, body_h, filler))
-    children[#children + 1] = vSpan(filler)
+    -- filler is already in device pixels (measured sizes) — vSpan() would
+    -- scale it again and blow the layout past the bottom edge
+    children[#children + 1] = VerticalSpan:new{ width = filler }
     children[#children + 1] = footer
 
     local group = VerticalGroup:new{ align = "left" }
     for i = 1, #children do
         group[i] = children[i]
     end
-
     self[1] = FrameContainer:new{
         background = Blitbuffer.COLOR_WHITE,
         bordersize = 0,
@@ -388,11 +389,14 @@ function ExamWidget:_buildQuestionBlocks(width)
     return blocks, option_at
 end
 
-function ExamWidget:onTapOption(ev)
+-- ges_events dispatch passes (gsseq.args, gesture): the gesture is the
+-- SECOND argument (inputcontainer.lua onGesture → Event:new(eventname,
+-- gsseq.args, ev))
+function ExamWidget:onTapOption(_, ev)
     if self._closed or self.mode ~= "question" then
         return false
     end
-    local pos = ev.pos
+    local pos = ev and ev.pos
     if not pos then return false end
     local slack = math.ceil(px(L.OPT_GAP) / 2)
     for _, r in ipairs(self._option_rects or {}) do
@@ -575,7 +579,7 @@ function ExamWidget:_populateLegacy()
     for i = 1, #group do
         final[i] = group[i]
     end
-    final[#final + 1] = vSpan(filler)
+    final[#final + 1] = VerticalSpan:new{ width = filler }
     self[1] = FrameContainer:new{
         background = Blitbuffer.COLOR_WHITE,
         bordersize = 0,
