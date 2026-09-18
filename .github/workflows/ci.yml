@@ -63,5 +63,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y luajit
-      - run: pnpm plugin:check
-      - run: pnpm plugin:test
+      - run: cd packages/koreader-plugin && for f in plugin/studyreader.koplugin/*.lua; do luajit -e "assert(loadfile('$f'))" || exit 1; done
+      - run: cd packages/koreader-plugin && luajit tests/run.lua
