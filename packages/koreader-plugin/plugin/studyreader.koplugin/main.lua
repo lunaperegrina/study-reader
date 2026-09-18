@@ -20,6 +20,8 @@ local _ = require("gettext")
 local Screens = require("screens")
 local State = require("state")
 local Store = require("store")
+local Sync = require("sync")
+local SyncUI = require("syncui")
 
 local Plugin = WidgetContainer:extend{
     name = "studyreader",
@@ -207,6 +209,15 @@ function Plugin:addToMainMenu(menu_items)
                 {
                     text = _("Reviews"),
                     callback = function() Screens.reviewsFlow() end,
+                },
+                {
+                    text = Sync.paired() and _("Sync now") or _("Pair account"),
+                    callback = function() SyncUI.syncNow() end,
+                    separator = true,
+                },
+                {
+                    text = _("Download my courses"),
+                    callback = function() SyncUI.downloadMenu() end,
                 },
             }
             if Screens.active then

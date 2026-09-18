@@ -110,6 +110,11 @@ check("main registers itself in the KOReader main menu", function()
 		["screens"] = {},
 		["state"] = {},
 		["store"] = {},
+		["datastorage"] = { getDataDir = function() return "/tmp" end },
+		["json"] = {},
+		["libs/libkoreader-lfs"] = {},
+		["sync"] = { paired = function() return false end },
+		["syncui"] = {},
 		["ui/widget/container/widgetcontainer"] = {
 			extend = function(base, o)
 				o = o or {}
@@ -356,6 +361,74 @@ check("srs matches the shared SM-2 conformance vectors (TS parity)", function()
 				.. " want " .. tostring(case.expected[field]))
 		end
 	end
+end)
+
+check("sync merges state per-key last-write-wins (mirrors api merge)", function()
+	local stubs = {
+		["datastorage"] = { getDataDir = function() return "/tmp" end },
+		["json"] = {},
+		["logger"] = { warn = function() end, info = function() end, dbg = function() end },
+		["libs/libkoreader-lfs"] = {},
+		["ssl.https"] = {},
+		["ltn12"] = {},
+		["state"] = {
+			load = function() return { progress = {}, answers = {}, reviews = {} } end,
+			save = function() end,
+		},
+	}
+	local saved = {}
+	for name, mod in pairs(stubs) do
+		saved[name] = package.loaded[name]
+		package.loaded[name] = mod
+	end
+	local ok, err = pcall(function()
+		local Sync = dofile(plugin .. "sync.lua")
+
+		local local_state = {
+			progress = {
+				currentLesson = "l1",
+				completedLessons = { l1 = "2026-01-01T10:00:00Z", l3 = "2026-03-01T10:00:00Z" },
+			},
+			answers = {
+				q1 = { selected = { "a" }, correct = false, answeredAt = "2026-01-01T10:00:00Z" },
+			},
+			reviews = {
+				legacy = { reps = 5, lapses = 0, ef = 2.5, interval = 30, due = 1780000000 },
+			},
+		}
+		local remote_state = {
+			progress = {
+				currentLesson = nil,
+				completedLessons = { l1 = "2026-05-01T10:00:00Z", l2 = "2026-05-02T10:00:00Z" },
+			},
+			answers = {
+				q1 = { selected = { "b" }, correct = true, answeredAt = "2026-02-01T10:00:00Z" },
+				q2 = { selected = { "c" }, correct = true, answeredAt = "2026-02-01T11:00:00Z" },
+			},
+			reviews = {
+				legacy = { reps = 0, lapses = 1, ef = 2.5, interval = 0, due = 1770000000, gradedAt = "2026-02-01T10:00:00Z" },
+			},
+		}
+
+		local merged = Sync.mergeState(local_state, remote_state)
+
+		assert(merged.progress.completedLessons.l1 == "2026-05-01T10:00:00Z", "newest completedLessons wins")
+		assert(merged.progress.completedLessons.l2 == "2026-05-02T10:00:00Z", "remote-only lesson kept")
+		assert(merged.progress.completedLessons.l3 == "2026-03-01T10:00:00Z", "local-only lesson kept")
+		assert(merged.progress.currentLesson == "l1", "nil remote keeps local currentLesson")
+		assert(merged.answers.q1.correct == true, "newest answer wins")
+		assert(merged.answers.q2 ~= nil, "remote-only answer kept")
+		assert(merged.reviews.legacy.gradedAt == "2026-02-01T10:00:00Z", "gradedAt beats legacy-missing")
+		assert(merged.reviews.legacy.reps == 0, "remote review record chosen")
+
+		local flipped = Sync.mergeState(remote_state, local_state)
+		assert(flipped.answers.q1.correct == true, "newest answer wins either side")
+		assert(flipped.progress.currentLesson == "l1", "non-nil currentLesson wins either side")
+	end)
+	for name in pairs(stubs) do
+		package.loaded[name] = saved[name]
+	end
+	assert(ok, err)
 end)
 
 if failures > 0 then

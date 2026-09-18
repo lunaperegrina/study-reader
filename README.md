@@ -79,6 +79,34 @@ The same device can be driven remotely (e-ink screenshots, injected taps,
 relaunching KOReader, crash.log) — `pnpm plugin:remote screenshot` — so UI work
 is verified without holding the reader.
 
+## Web platform
+
+`apps/web` + `apps/api` form the study-reader platform: private library
+(upload any `.study`), an in-browser reader (lessons, quizzes, SM-2 flashcard
+reviews) and an AI course creator (paste text or upload `.md`/`.pdf`; outline
+review, then per-lesson generation). Progress syncs with the Kindle plugin:
+pair the device in Settings → dispositivos, then use "Sync now" / "Download my
+courses" in KOReader's Study menu.
+
+```sh
+docker compose up -d          # Postgres on 127.0.0.1:5435
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
+pnpm api:db:migrate
+pnpm dev                      # api :3001, web :5173
+```
+
+AI generation needs a provider key in `apps/api/.env`
+(`ANTHROPIC_API_KEY` or `OPENAI_API_KEY` + optional `OPENAI_BASE_URL`,
+`CREATOR_MODEL`, `CREATOR_MONTHLY_LIMIT`). Self-hosted instances use their own
+keys; the hosted deployment applies a monthly per-account quota.
+
+Deploy (Railway, house pattern): `apps/api/Dockerfile` compiles the api with
+Bun into a distroless image (migrations in `apps/api/drizzle`, apply on boot or
+manually against the prod `DATABASE_URL`); `apps/web/Dockerfile` builds the SPA
+and serves it with Caddy. See [`packages/koreader-plugin/docs/DEVELOPING.md`](packages/koreader-plugin/docs/DEVELOPING.md)
+for the local device-sync loop.
+
 See [`packages/koreader-plugin/docs/DEVELOPING.md`](packages/koreader-plugin/docs/DEVELOPING.md).
 
 ## Licensing

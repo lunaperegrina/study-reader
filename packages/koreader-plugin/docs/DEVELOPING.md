@@ -125,4 +125,41 @@ To surface the Quick Action on the Simple UI home: edit the quick actions
 
 - Quiz re-answering is not supported yet (answered questions are skipped)
 - Nested lists and escaped pipes inside table cells are not handled by the Markdown renderer
-- No sync, no import wizard — courses are copied manually into the `study/` folder
+- Sync is manual (menu-triggered); courses can also be downloaded from the paired account (see "Cloud sync against a local api")
+
+## Cloud sync against a local api (M12)
+
+The plugin can pair with a study-reader platform instance and sync course
+state + download courses over Wi-Fi. To test against the api on your machine:
+
+1. Start Postgres + api + web:
+   ```sh
+   docker compose up -d
+   pnpm api:db:migrate        # first time only
+   pnpm dev                   # api on :3001 (all interfaces), web on :5173
+   ```
+2. In the web app: Settings → "Gerar código de pareamento" (6-char code,
+   valid for 10 minutes).
+3. On the Kindle, KOReader menu → Study → "Pair account": enter
+   `http://<your-machine-lan-ip>:3001` and the code. The token is stored in
+   `<koreader-data>/studyreader/sync.json`.
+4. "Download my courses" pulls every `.study` from the account into
+   `<koreader-data>/studyreader/courses/`; "Sync now" merges progress,
+   answers and reviews per-key (last-write-wins on answeredAt / gradedAt /
+   completed timestamps — the same rules the server applies, mirrored in
+   `sync.lua` and tested in both directions).
+
+Driving the pairing UI over e-ink is slow; alternatively pair from the dev
+machine and drop the token on the device:
+
+```sh
+CODE=$(curl -s -b cookies.txt -X POST localhost:3001/api/v1/devices/pairing-code | jq -r .code)
+TOKEN=$(curl -s -X POST localhost:3001/api/v1/devices/pair -H 'Content-Type: application/json' \
+  -d "{\"code\":\"$CODE\",\"name\":\"Kindle\"}" | jq -r .deviceToken)
+ssh -p 2222 root@kindle 'mkdir -p /mnt/us/koreader/studyreader' 
+echo "{\"server\":\"http://192.168.15.4:3001\",\"token\":\"$TOKEN\"}" | \
+  ssh -p 2222 root@kindle 'cat > /mnt/us/koreader/studyreader/sync.json'
+```
+
+Then use the remote tool (`pnpm plugin:remote screenshot` / `tap`) to open
+Study → "Download my courses" and "Sync now" and verify on the framebuffer.

@@ -3,6 +3,7 @@ import type { DeviceSummary, PairingCode } from "@study-reader/contracts"
 import db from "@/db/client"
 import { deviceTokens, pairingCodes } from "@/db/schema-exported"
 import { AppError } from "@/error"
+import { generateDeviceToken, hashDeviceToken } from "@/lib/device-auth"
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 const CODE_TTL_MS = 10 * 60 * 1000
@@ -38,6 +39,23 @@ export abstract class DevicesService {
 			)
 		}
 		return { code: row.code, expiresAt: row.expiresAt.toISOString() }
+	}
+
+	static async pairWithCode(
+		code: string,
+		name: string,
+	): Promise<{ deviceToken: string; deviceName: string }> {
+		const userId = await this.consumePairingCode(code)
+		const deviceName = name.trim().slice(0, 64) || "KOReader"
+		const token = generateDeviceToken()
+
+		await db.insert(deviceTokens).values({
+			userId,
+			name: deviceName,
+			tokenHash: hashDeviceToken(token),
+		})
+
+		return { deviceToken: token, deviceName }
 	}
 
 	static async consumePairingCode(code: string): Promise<string> {

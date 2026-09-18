@@ -1,7 +1,8 @@
 import { and, eq } from "drizzle-orm"
 import type { SyncState } from "@study-reader/contracts"
 import db from "@/db/client"
-import { courseState } from "@/db/schema-exported"
+import { courseState, courses } from "@/db/schema-exported"
+import { AppError } from "@/error"
 import { mergeSyncState } from "./merge"
 
 const emptyState: SyncState = {
@@ -10,8 +11,47 @@ const emptyState: SyncState = {
 	reviews: {},
 }
 
+export type SyncCourseEntry = {
+	courseId: string
+	title: string
+	version: number
+	lessonCount: number
+	updatedAt: string
+}
+
 /** biome-ignore lint/complexity/noStaticOnlyClass: service pattern */
 export abstract class SyncService {
+	static async listCourses(userId: string): Promise<SyncCourseEntry[]> {
+		const rows = await db
+			.select({
+				courseId: courses.courseId,
+				title: courses.title,
+				version: courses.version,
+				lessonCount: courses.lessonCount,
+				updatedAt: courses.updatedAt,
+			})
+			.from(courses)
+			.where(eq(courses.ownerId, userId))
+		return rows.map((row) => ({
+			courseId: row.courseId,
+			title: row.title,
+			version: row.version,
+			lessonCount: row.lessonCount,
+			updatedAt: row.updatedAt.toISOString(),
+		}))
+	}
+
+	static async packageBytes(userId: string, courseId: string): Promise<Uint8Array> {
+		const [row] = await db
+			.select({ data: courses.data })
+			.from(courses)
+			.where(and(eq(courses.ownerId, userId), eq(courses.courseId, courseId)))
+			.limit(1)
+		if (!row) {
+			throw new AppError("COURSE_NOT_FOUND", 404, "Curso não encontrado.")
+		}
+		return new Uint8Array(row.data)
+	}
 	static async getState(userId: string, courseId: string): Promise<SyncState> {
 		const [row] = await db
 			.select()

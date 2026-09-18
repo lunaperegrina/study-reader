@@ -15,7 +15,7 @@
 		"plugin:deploy": "bash packages/koreader-plugin/deploy.sh",
 		"plugin:remote": "bash packages/koreader-plugin/tools/kindle-remote.sh",
 		"plugin:test": "cd packages/koreader-plugin && luajit tests/run.lua",
-		"plugin:check": "cd packages/koreader-plugin && luajit -e \"for _, f in ipairs({'_meta','main','md2xhtml','quiz','review','screens','srs','state','store','courselist','exam','examcore'}) do assert(loadfile('plugin/studyreader.koplugin/' .. f .. '.lua'), f) end print('lua syntax OK')\"",
+		"plugin:check": "cd packages/koreader-plugin && luajit -e \"for _, f in ipairs({'_meta','main','md2xhtml','quiz','review','screens','srs','state','store','courselist','exam','examcore','sync','syncui'}) do assert(loadfile('plugin/studyreader.koplugin/' .. f .. '.lua'), f) end print('lua syntax OK')\"",
 		"dev": "pnpm --parallel --filter @study-reader/api --filter @study-reader/web dev",
 		"api:dev": "pnpm --filter @study-reader/api dev",
 		"api:check": "pnpm --filter @study-reader/api check",
