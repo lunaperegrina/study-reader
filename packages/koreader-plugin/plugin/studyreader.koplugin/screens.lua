@@ -44,7 +44,7 @@ local function pushMenu(props)
 end
 
 local function pushChildMenu(props)
-    props.title_bar_left_icon = "appbar.chevron.left"
+    props.title_bar_left_icon = "chevron.left"
     local menu = pushMenu(props)
     menu.onLeftButtonTap = function()
         untrack(menu)
