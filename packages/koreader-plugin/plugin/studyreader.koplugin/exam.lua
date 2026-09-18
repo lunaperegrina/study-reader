@@ -20,7 +20,13 @@ local FocusManager = require("ui/widget/focusmanager")
 local Font = require("ui/font")
 local FrameContainer = require("ui/widget/container/framecontainer")
 local Geom = require("ui/geometry")
-local GestureRange = require("ui/widget/gesturerange")
+-- GestureRange lives at ui/widget/gesturerange in upstream master, but at
+-- ui/gesturerange in older/custom device builds (e.g. the mdlight build).
+local GestureRange
+do
+    local ok, module = pcall(require, "ui/widget/gesturerange")
+    GestureRange = ok and module or require("ui/gesturerange")
+end
 local HorizontalGroup = require("ui/widget/horizontalgroup")
 local HorizontalSpan = require("ui/widget/horizontalspan")
 local InfoMessage = require("ui/widget/infomessage")
