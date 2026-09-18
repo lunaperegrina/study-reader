@@ -6,9 +6,9 @@ target device — custom containers misrender and custom InputContainers do
 not get taps there):
   header: [7:00 / tempo restante]  [Pergunta X de Y]  [0/5 respondidas]
   thin progress bar · category (small caps) · question (large, bold, left)
-  options: full-width left-aligned Buttons (☐/◉ + letter + text, gray fill
-  when selected, generous padding)
-  footer (ruled): ‹ Anterior | ☰ | Próxima › / Finalizar ✓
+  options: full-width left-aligned Buttons (○/◉ for single-choice, ☐/☑ for
+  multiple-choice, + letter + text, gray fill when selected, generous padding)
+  footer (ruled): ‹ Anterior | menu icon | Próxima › / Finalizar (filled)
 Long content paginates (Ver mais ▾), footer never clipped.
 ]]
 
@@ -66,6 +66,7 @@ local L = {
     OPT_PAD_V = 14,
     FOOT_PAD_V = 12,
     FOOT_GAP = 8,
+    FOOT_ICON = 24,
     FS_HEADER = 15,
     FS_SUB = 12,
     FS_TIMER = 20,
@@ -217,7 +218,7 @@ function ExamWidget:_populate()
     end
     if self._page < page_count then
         local more = Button:new{
-            text = _("Ver mais alternativas") .. " ▾",
+            text = _("Ver mais alternativas") .. " …",
             width = width,
             align = "center",
             padding_v = px(10),
@@ -318,11 +319,14 @@ function ExamWidget:_buildQuestionBlocks(width)
         chosen[oid] = true
     end
 
+    local is_multi = question.type == "multiple-choice"
     for _, option in ipairs(question.options) do
         local is_selected = chosen[option.id] == true
+        -- single-choice is always a circle (○/◉), multiple-choice always a
+        -- square checkbox (☐/☑)
         local prefix = is_selected
-            and (question.type == "multiple-choice" and "☑ " or "◉ ")
-            or "☐ "
+            and (is_multi and "☑ " or "◉ ")
+            or (is_multi and "☐ " or "○ ")
         local button = Button:new{
             text = string.format("%s%s) %s", prefix, option.id, option.text),
             width = width,
@@ -361,25 +365,43 @@ function ExamWidget:_buildFooter(width)
     local index = self.session.current
     local total = #self.session.questionIds
     local is_last = index >= total
-    local third = math.floor((width - 2 * px(L.FOOT_GAP)) / 3)
+    local gap = px(L.FOOT_GAP)
+    local third = math.floor((width - 2 * gap) / 3)
 
+    -- labels stick to glyphs natively present in NotoSans (‹ ›): ☰/☐/☑ only
+    -- exist in the deepest fallback font on this device and render faintly,
+    -- so the palette button uses the appbar.menu icon instead
     local prev = Button:new{
         text = "‹ " .. _("Anterior"),
         width = third,
         enabled = index > 1,
+        avoid_text_truncation = false,
+        text_font_size = L.FS_FOOT,
+        padding_v = px(10),
+        bordersize = 1,
+        radius = px(6),
         callback = function() self:_go(index - 1) end,
         show_parent = self,
     }
     local palette = Button:new{
-        text = "☰",
+        icon = "appbar.menu",
+        icon_width = px(L.FOOT_ICON),
+        icon_height = px(L.FOOT_ICON),
         width = third,
+        padding_v = px(10),
+        bordersize = 1,
+        radius = px(6),
         callback = function() self:_showPalette() end,
         show_parent = self,
     }
     local next = Button:new{
-        text = is_last and _("Finalizar") .. " ✓" or _("Próxima") .. " ›",
-        width = width - 2 * third - 2 * px(L.FOOT_GAP),
-        bordersize = px(2),
+        text = is_last and _("Finalizar") or _("Próxima") .. " ›",
+        width = third,
+        avoid_text_truncation = false,
+        text_font_size = L.FS_FOOT,
+        padding_v = px(10),
+        bordersize = 0,
+        preselect = true, -- frame inversion: filled black, white label
         callback = function()
             if is_last then
                 self:_confirmFinish()
@@ -401,10 +423,11 @@ function ExamWidget:_buildFooter(width)
         },
         vSpan(L.FOOT_PAD_V),
         HorizontalGroup:new{
+            align = "center",
             prev,
-            HorizontalSpan:new{ width = px(L.FOOT_GAP) },
+            HorizontalSpan:new{ width = gap },
             palette,
-            HorizontalSpan:new{ width = px(L.FOOT_GAP) },
+            HorizontalSpan:new{ width = gap },
             next,
         },
     }
@@ -566,7 +589,7 @@ function ExamWidget:_showPalette()
     for i = 1, total do
         local id = self.session.questionIds[i]
         local answered = self.session.answers[id] ~= nil
-        local mark = i == self.session.current and "▸"
+        local mark = i == self.session.current and "»"
             or answered and "✓" or ""
         row[#row + 1] = {
             text = string.format("%s%d", mark, i),
