@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppCreateRouteImport } from './routes/_app.create'
 import { Route as AppCoursesCourseIdRouteImport } from './routes/_app.courses.$courseId'
 import { Route as AppCoursesCourseIdIndexRouteImport } from './routes/_app.courses.$courseId.index'
 import { Route as AppCoursesCourseIdReviewsRouteImport } from './routes/_app.courses.$courseId.reviews'
@@ -43,6 +44,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCreateRoute = AppCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCoursesCourseIdRoute = AppCoursesCourseIdRouteImport.update({
   id: '/courses/$courseId',
   path: '/courses/$courseId',
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/create': typeof AppCreateRoute
   '/settings': typeof AppSettingsRoute
   '/courses/$courseId': typeof AppCoursesCourseIdRouteWithChildren
   '/courses/$courseId/reviews': typeof AppCoursesCourseIdReviewsRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/create': typeof AppCreateRoute
   '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
   '/courses/$courseId/reviews': typeof AppCoursesCourseIdReviewsRoute
@@ -90,6 +98,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/_app/create': typeof AppCreateRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
   '/_app/courses/$courseId': typeof AppCoursesCourseIdRouteWithChildren
@@ -103,6 +112,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/create'
     | '/settings'
     | '/courses/$courseId'
     | '/courses/$courseId/reviews'
@@ -112,6 +122,7 @@ export interface FileRouteTypes {
   to:
     | '/login'
     | '/register'
+    | '/create'
     | '/settings'
     | '/'
     | '/courses/$courseId/reviews'
@@ -122,6 +133,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/login'
     | '/register'
+    | '/_app/create'
     | '/_app/settings'
     | '/_app/'
     | '/_app/courses/$courseId'
@@ -173,6 +185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/create': {
+      id: '/_app/create'
+      path: '/create'
+      fullPath: '/create'
+      preLoaderRoute: typeof AppCreateRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/courses/$courseId': {
       id: '/_app/courses/$courseId'
       path: '/courses/$courseId'
@@ -220,12 +239,14 @@ const AppCoursesCourseIdRouteWithChildren =
   AppCoursesCourseIdRoute._addFileChildren(AppCoursesCourseIdRouteChildren)
 
 interface AppRouteChildren {
+  AppCreateRoute: typeof AppCreateRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppCoursesCourseIdRoute: typeof AppCoursesCourseIdRouteWithChildren
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppCreateRoute: AppCreateRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
   AppCoursesCourseIdRoute: AppCoursesCourseIdRouteWithChildren,

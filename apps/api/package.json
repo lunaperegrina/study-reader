@@ -14,13 +14,18 @@
 		"db:studio": "drizzle-kit studio"
 	},
 	"dependencies": {
+		"@ai-sdk/anthropic": "^4.0.57",
+		"@ai-sdk/gateway": "^4.0.86",
+		"@ai-sdk/openai": "^4.0.70",
 		"@elysiajs/cors": "^1.4.2",
 		"@study-reader/contracts": "workspace:*",
 		"@study-reader/study-format": "workspace:*",
+		"ai": "^7.0.106",
 		"better-auth": "^1.7.1",
 		"drizzle-orm": "^0.45.2",
 		"elysia": "^1.4.28",
 		"pg": "^8.20.0",
+		"unpdf": "^1.8.1",
 		"zod": "^4.4.1"
 	},
 	"devDependencies": {

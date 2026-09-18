@@ -67,10 +67,9 @@ function LibraryPage() {
 						}
 						onClick={() => fileInputRef.current?.click()}
 					/>
-					<InkButton
-						label={`${t("library.createWithAi")} — ${t("library.comingSoon")}`}
-						disabled
-					/>
+					<Link to="/create" style={{ textDecoration: "none" }}>
+						<InkButton label={t("library.createWithAi")} />
+					</Link>
 					<input
 						ref={fileInputRef}
 						type="file"

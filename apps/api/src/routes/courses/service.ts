@@ -9,7 +9,11 @@ type CourseRow = typeof courses.$inferSelect
 
 /** biome-ignore lint/complexity/noStaticOnlyClass: service pattern */
 export abstract class CoursesService {
-	static async upload(ownerId: string, bytes: Uint8Array): Promise<CourseSummary> {
+	static async createFromBytes(
+		ownerId: string,
+		bytes: Uint8Array,
+		source: "upload" | "ai",
+	): Promise<CourseSummary> {
 		const validated = validateStudyPackage(bytes)
 
 		const [existing] = await db
@@ -40,7 +44,7 @@ export abstract class CoursesService {
 				language: validated.manifest.language ?? null,
 				author: validated.manifest.author ?? null,
 				version: validated.manifest.version,
-				source: "upload",
+				source,
 				manifest: validated.manifest,
 				moduleCount: validated.moduleCount,
 				lessonCount: validated.lessonCount,
@@ -48,6 +52,10 @@ export abstract class CoursesService {
 			})
 			.returning()
 		return toSummary(row)
+	}
+
+	static async upload(ownerId: string, bytes: Uint8Array): Promise<CourseSummary> {
+		return this.createFromBytes(ownerId, bytes, "upload")
 	}
 
 	static async list(ownerId: string): Promise<CourseSummary[]> {

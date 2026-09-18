@@ -67,6 +67,24 @@ export const dictionary = {
 	"reader.noReviewsHint": "Volte quando houver cartões vencidos.",
 	"reader.reviewProgress": "{current} de {total}",
 	"reader.reviewRecorded": "Revisão registrada",
+	"create.title": "Criar curso com IA",
+	"create.step1": "Etapa 1 de 3 — material",
+	"create.step2": "Etapa 2 de 3 — estrutura",
+	"create.step3": "Etapa 3 de 3 — geração",
+	"create.step1Hint":
+		"Cole o texto do seu material de estudo ou envie um arquivo (.md, .mdx, .txt ou .pdf). O curso é gerado a partir dele e fica privado na sua biblioteca.",
+	"create.pasteLabel": "Cole aqui o texto do material…",
+	"create.orFile": "Enviar arquivo",
+	"create.next": "Gerar estrutura",
+	"create.outlining": "Analisando o material…",
+	"create.step2Hint": "Revise módulos e lições. Remova o que não quiser antes de gerar o conteúdo.",
+	"create.moduleLabel": "Módulo {index}",
+	"create.removeLesson": "Remover",
+	"create.generateAll": "Gerar curso ({count} lições)",
+	"create.backToInput": "← Voltar ao material",
+	"create.backToOutline": "← Voltar à estrutura",
+	"create.generatingLesson": "Escrevendo: {title}…",
+	"create.assembling": "Montando o pacote .study…",
 } as const
 
 export type MessageKey = keyof typeof dictionary
