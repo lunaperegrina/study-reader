@@ -6,10 +6,12 @@ target device — custom containers misrender and custom InputContainers do
 not get taps there):
   header: [7:00 / tempo restante]  [Pergunta X de Y]  [0/5 respondidas]
   thin progress bar · category (small caps) · question (large, bold, left)
-  options: full-width left-aligned Buttons (○/◉ for single-choice, ☐/☑ for
-  multiple-choice, + letter + text, gray fill when selected, generous padding)
-  footer (ruled): ‹ Anterior | menu icon | Próxima › / Finalizar (filled)
-Long content paginates (Ver mais ▾), footer never clipped.
+  options: PLAIN text lines (same font size as the question, natural
+  multi-line wrap, no borders/background — reference design); tappable via
+  a root-level tap handler with manual hit-testing, so footer/Ver-mais
+  Buttons (real Buttons) still consume their taps first
+  footer (ruled): ‹ Anterior | Questões | Próxima › / Finalizar
+Long content paginates (Ver mais …), footer never clipped.
 ]]
 
 local Blitbuffer = require("ffi/blitbuffer")
@@ -35,6 +37,11 @@ local VerticalGroup = require("ui/widget/verticalgroup")
 local VerticalSpan = require("ui/widget/verticalspan")
 local _ = require("gettext")
 
+local ok_gr, GestureRange = pcall(require, "ui/widget/gesturerange")
+if not ok_gr then
+    GestureRange = require("ui/gesturerange")
+end
+
 local ExamCore = require("examcore")
 local State = require("state")
 
@@ -49,7 +56,6 @@ local function px(n)
     return math.floor(Screen:scaleBySize(n) + 0.5)
 end
 
-local GRAY = Blitbuffer.COLOR_GRAY
 local DARK_GRAY = Blitbuffer.COLOR_DARK_GRAY
 
 -- layout tokens. Font sizes are RAW: Font:getFace applies screen-DPI scaling
@@ -63,7 +69,6 @@ local L = {
     CATEGORY_GAP = 6,
     QUESTION_GAP = 16,
     OPT_GAP = 10,
-    OPT_PAD_V = 14,
     FOOT_PAD_V = 12,
     FOOT_GAP = 8,
     FOOT_ICON = 24,
@@ -71,8 +76,10 @@ local L = {
     FS_SUB = 12,
     FS_TIMER = 20,
     FS_CATEGORY = 12,
+    -- question and options share the same size (reference design); the
+    -- question is bold, options are regular
     FS_QUESTION = 22,
-    FS_OPTION = 19,
+    FS_OPTION = 22,
     FS_FOOT = 15,
 }
 
@@ -84,6 +91,15 @@ function ExamWidget:init()
     if Device:hasKeys() then
         self.key_events.Close = { { Device.input.group.Back } }
     end
+    -- options are plain TextBoxWidgets (no chrome, natural wrap) — taps on
+    -- them are hit-tested here at the root; real Buttons lower in the tree
+    -- (footer, Ver mais) consume their own taps first (children are
+    -- propagated events before the parent handles them)
+    self.ges_events = {
+        TapOption = {
+            GestureRange:new{ ges = "tap", range = self.dimen },
+        },
+    }
     self.mode = "question"
     self.review_index = 1
     self._page = 1
@@ -180,7 +196,8 @@ function ExamWidget:_populate()
 
     local header = self:_buildHeader(width)
     local footer = self:_buildFooter(width)
-    local blocks = self:_buildQuestionBlocks(width)
+    local blocks, option_at = self:_buildQuestionBlocks(width)
+    option_at = option_at or {}
 
     -- measure only widgets that are never mutated afterwards: mutating a
     -- VerticalGroup after getSize() leaves stale _offsets and crashes paint
@@ -215,15 +232,36 @@ function ExamWidget:_populate()
 
     local stop = self._page < page_count and (pages[self._page + 1].start_i - 1)
         or #blocks
+    -- assemble the page; track screen-space rects of option blocks for the
+    -- root-level tap hit-testing (offsets mirror what VerticalGroup paints:
+    -- FrameContainer padding, then child heights summed in order)
+    local pad = px(L.MARGIN)
     local body_h = 0
     local children = { header, vSpan(L.BODY_TOP_GAP) }
+    local y = pad + header_h + px(L.BODY_TOP_GAP)
+    local rects = {}
     for i = pages[self._page].start_i, stop do
         if body_h > 0 then
-            children[#children + 1] = vSpan(L.OPT_GAP)
+            local span = vSpan(L.OPT_GAP)
+            children[#children + 1] = span
+            y = y + span:getSize().h
         end
-        children[#children + 1] = blocks[i]
-        body_h = body_h + blocks[i]:getSize().h + gap
+        local block = blocks[i]
+        children[#children + 1] = block
+        local h = block:getSize().h
+        if option_at[i] then
+            rects[#rects + 1] = {
+                id = option_at[i],
+                x = pad,
+                y = y,
+                w = width,
+                h = h,
+            }
+        end
+        y = y + h
+        body_h = body_h + h + gap
     end
+    self._option_rects = rects
     if self._page < page_count then
         local more = Button:new{
             text = _("Ver mais alternativas") .. " …",
@@ -304,10 +342,11 @@ function ExamWidget:_buildQuestionBlocks(width)
     local id = self.session.questionIds[index]
     local question = self.course.questions[id]
     local blocks = {}
+    local option_at = {}
 
     if not question then
         blocks[1] = textBox(_("Question not found in bank"), L.FS_OPTION, width)
-        return blocks
+        return blocks, option_at
     end
 
     local category = self:_categoryFor(id)
@@ -331,6 +370,8 @@ function ExamWidget:_buildQuestionBlocks(width)
         chosen[oid] = true
     end
 
+    -- plain text options (reference design): no border, no background, same
+    -- font size as the question, natural multi-line wrap (no font shrinking)
     local is_multi = question.type == "multiple-choice"
     for _, option in ipairs(question.options) do
         local is_selected = chosen[option.id] == true
@@ -339,23 +380,33 @@ function ExamWidget:_buildQuestionBlocks(width)
         local prefix = is_selected
             and (is_multi and "☑ " or "◉ ")
             or (is_multi and "☐ " or "○ ")
-        local button = Button:new{
-            text = string.format("%s%s) %s", prefix, option.id, option.text),
-            width = width,
-            align = "left",
-            padding_v = px(L.OPT_PAD_V),
-            bordersize = 1,
-            radius = px(6),
-            background = is_selected and GRAY or nil,
-            callback = function()
-                self:_toggle(option.id, question)
-            end,
-            show_parent = self,
-        }
-        self.layout[#self.layout + 1] = { button }
-        blocks[#blocks + 1] = button
+        option_at[#blocks + 1] = option.id
+        blocks[#blocks + 1] = textBox(
+            string.format("%s%s) %s", prefix, option.id, option.text),
+            L.FS_OPTION, width)
     end
-    return blocks
+    return blocks, option_at
+end
+
+function ExamWidget:onTapOption(ev)
+    if self._closed or self.mode ~= "question" then
+        return false
+    end
+    local pos = ev.pos
+    if not pos then return false end
+    local slack = math.ceil(px(L.OPT_GAP) / 2)
+    for _, r in ipairs(self._option_rects or {}) do
+        if pos.x >= r.x and pos.x <= r.x + r.w
+            and pos.y >= r.y - slack and pos.y <= r.y + r.h + slack then
+            local id = self.session.questionIds[self.session.current]
+            local question = self.course.questions[id]
+            if question then
+                self:_toggle(r.id, question)
+            end
+            return true
+        end
+    end
+    return false
 end
 
 function ExamWidget:_categoryFor(question_id)
