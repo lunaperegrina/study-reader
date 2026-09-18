@@ -13,7 +13,7 @@ function collectFiles(dir: string, base = dir): Promise<StudyFile[]> {
 				files.push(...(await collectFiles(full, base)));
 			} else {
 				files.push({
-					path: full.slice(base.length + 1),
+					path: full.slice(base.length + 1).replaceAll("\\", "/"),
 					data: new Uint8Array(await readFile(full)),
 				});
 			}
