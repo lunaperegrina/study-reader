@@ -1,4 +1,5 @@
 import { createFileRoute, Link, Outlet, redirect } from "@tanstack/react-router"
+import { InkButton } from "@/components/ink"
 import { authClient } from "@/lib/auth/auth-client"
 import { t } from "@/locales/pt-BR"
 
@@ -29,7 +30,7 @@ function AppLayout() {
 					marginBottom: "var(--ink-space-5)",
 				}}
 			>
-				<e-title level="3">{t("app.name")}</e-title>
+				<h3 className="ink-title ink-title--3">{t("app.name")}</h3>
 				<nav
 					style={{
 						display: "flex",
@@ -39,7 +40,7 @@ function AppLayout() {
 				>
 					<Link to="/">{t("nav.library")}</Link>
 					<Link to="/settings">{t("nav.settings")}</Link>
-					<e-button onClick={handleLogout}>{t("nav.logout")}</e-button>
+					<InkButton label={t("nav.logout")} onClick={handleLogout} />
 				</nav>
 			</header>
 			<Outlet />

@@ -1,0 +1,19 @@
+{
+	"name": "@study-reader/srs",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"description": "SM-2 scheduler — exact TS port of the KOReader plugin's srs.lua, shares conformance vectors with it",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"test": "vitest run",
+		"check": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@types/node": "^22.10.0",
+		"typescript": "^5.7.0",
+		"vitest": "^3.0.0"
+	}
+}

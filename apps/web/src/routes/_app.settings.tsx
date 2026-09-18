@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
+import { InkButton, InkCard } from "@/components/ink"
 import { useDevicesQuery, usePairingCodeMutation } from "@/queries/courses"
 import { t } from "@/locales/pt-BR"
 
@@ -13,54 +14,57 @@ function SettingsPage() {
 
 	return (
 		<section style={{ display: "grid", gap: "var(--ink-space-4)" }}>
-			<e-title level="1">{t("settings.title")}</e-title>
+			<h1 className="ink-title ink-title--1">{t("settings.title")}</h1>
 
-			<e-card>
-				<e-title level="3">{t("settings.devices")}</e-title>
-				<e-text>{t("settings.devicesHint")}</e-text>
+			<InkCard>
+				<h3 className="ink-title ink-title--3">{t("settings.devices")}</h3>
+				<p className="ink-text">{t("settings.devicesHint")}</p>
 				<div
 					style={{
 						display: "flex",
 						alignItems: "center",
 						gap: "var(--ink-space-3)",
 						margin: "var(--ink-space-3) 0",
+						flexWrap: "wrap",
 					}}
 				>
-					<e-button
+					<InkButton
 						variant="primary"
-						onClick={() => pairingMutation.mutate()}
+						label={t("settings.generateCode")}
 						disabled={pairingMutation.isPending}
-					>
-						{t("settings.generateCode")}
-					</e-button>
+						onClick={() => pairingMutation.mutate()}
+					/>
 					{code ? (
 						<span>
-							<e-title level="2" style={{ letterSpacing: "0.2em" }}>
+							<strong
+								className="ink-title ink-title--2"
+								style={{ letterSpacing: "0.2em", fontVariantNumeric: "tabular-nums" }}
+							>
 								{code.code}
-							</e-title>
-							<e-text>
+							</strong>
+							<span className="ink-text ink-text--caption" style={{ display: "block" }}>
 								{t("settings.codeExpires", {
 									time: new Date(code.expiresAt).toLocaleTimeString("pt-BR"),
 								})}
-							</e-text>
+							</span>
 						</span>
 					) : null}
 				</div>
 				{devicesQuery.data && devicesQuery.data.length > 0 ? (
-					<e-list>
+					<ul style={{ margin: 0, paddingLeft: "var(--ink-space-5)" }}>
 						{devicesQuery.data.map((device) => (
-							<e-text key={device.id}>
+							<li key={device.id} className="ink-text">
 								{device.name} —{" "}
 								{t("settings.deviceSince", {
 									date: new Date(device.createdAt).toLocaleDateString("pt-BR"),
 								})}
-							</e-text>
+							</li>
 						))}
-					</e-list>
+					</ul>
 				) : (
-					<e-text>{t("settings.noDevices")}</e-text>
+					<p className="ink-text">{t("settings.noDevices")}</p>
 				)}
-			</e-card>
+			</InkCard>
 		</section>
 	)
 }

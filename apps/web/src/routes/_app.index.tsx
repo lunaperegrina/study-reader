@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { type ChangeEvent, useRef, useState } from "react"
 import type { CourseSummary } from "@study-reader/contracts"
+import { InkButton, InkCard } from "@/components/ink"
 import {
 	useCoursesQuery,
 	useDeleteCourseMutation,
@@ -52,24 +53,24 @@ function LibraryPage() {
 					justifyContent: "space-between",
 					gap: "var(--ink-space-3)",
 					marginBottom: "var(--ink-space-5)",
+					flexWrap: "wrap",
 				}}
 			>
-				<e-title level="1">{t("library.title")}</e-title>
-				<div
-					style={{
-						display: "flex",
-						alignItems: "center",
-						gap: "var(--ink-space-3)",
-					}}
-				>
-					<e-button variant="primary" onClick={() => fileInputRef.current?.click()}>
-						{uploadMutation.isPending
-							? t("library.uploading")
-							: t("library.upload")}
-					</e-button>
-					<e-button disabled title={t("library.comingSoon")}>
-						{t("library.createWithAi")}
-					</e-button>
+				<h1 className="ink-title ink-title--1">{t("library.title")}</h1>
+				<div style={{ display: "flex", alignItems: "center", gap: "var(--ink-space-3)" }}>
+					<InkButton
+						variant="primary"
+						label={
+							uploadMutation.isPending
+								? t("library.uploading")
+								: t("library.upload")
+						}
+						onClick={() => fileInputRef.current?.click()}
+					/>
+					<InkButton
+						label={`${t("library.createWithAi")} — ${t("library.comingSoon")}`}
+						disabled
+					/>
 					<input
 						ref={fileInputRef}
 						type="file"
@@ -80,17 +81,17 @@ function LibraryPage() {
 				</div>
 			</div>
 
-			{uploadError ? <e-alert>{uploadError}</e-alert> : null}
+			{uploadError ? <div className="ink-alert">{uploadError}</div> : null}
 
 			{coursesQuery.isPending ? (
-				<e-text>{t("library.uploading")}</e-text>
+				<p className="ink-text">{t("reader.loading")}</p>
 			) : coursesQuery.isError ? (
-				<e-alert>{(coursesQuery.error as Error).message}</e-alert>
+				<div className="ink-alert">{(coursesQuery.error as Error).message}</div>
 			) : coursesQuery.data.length === 0 ? (
-				<e-empty
-					heading={t("library.empty")}
-					description={t("library.emptyHint")}
-				/>
+				<div className="ink-empty">
+					<div className="ink-empty__title">{t("library.empty")}</div>
+					<p className="ink-empty__desc">{t("library.emptyHint")}</p>
+				</div>
 			) : (
 				<div
 					style={{
@@ -100,23 +101,28 @@ function LibraryPage() {
 					}}
 				>
 					{coursesQuery.data.map((course) => (
-						<e-card key={course.id}>
-							<e-title level="4">{course.title}</e-title>
-							<e-text>{course.description ?? ""}</e-text>
+						<InkCard key={course.id}>
+							<h4 className="ink-title ink-title--4">{course.title}</h4>
+							<p className="ink-text">{course.description ?? ""}</p>
 							<div
 								style={{
 									display: "flex",
 									gap: "var(--ink-space-2)",
 									marginBottom: "var(--ink-space-3)",
+									flexWrap: "wrap",
 								}}
 							>
-								<e-tag>
+								<span className="ink-tag">
 									{course.source === "ai"
 										? t("library.sourceAi")
 										: t("library.sourceUpload")}
-								</e-tag>
-								<e-tag>{t("library.modules", { count: course.moduleCount })}</e-tag>
-								<e-tag>{t("library.lessons", { count: course.lessonCount })}</e-tag>
+								</span>
+								<span className="ink-tag">
+									{t("library.modules", { count: course.moduleCount })}
+								</span>
+								<span className="ink-tag">
+									{t("library.lessons", { count: course.lessonCount })}
+								</span>
 							</div>
 							<div style={{ display: "flex", gap: "var(--ink-space-2)" }}>
 								<Link
@@ -124,13 +130,14 @@ function LibraryPage() {
 									params={{ courseId: course.id }}
 									style={{ textDecoration: "none" }}
 								>
-									<e-button variant="primary">{t("library.open")}</e-button>
+									<InkButton variant="primary" label={t("library.open")} />
 								</Link>
-								<e-button onClick={() => handleDelete(course)}>
-									{t("library.delete")}
-								</e-button>
+								<InkButton
+									label={t("library.delete")}
+									onClick={() => handleDelete(course)}
+								/>
 							</div>
-						</e-card>
+						</InkCard>
 					))}
 				</div>
 			)}

@@ -1,0 +1,67 @@
+{
+	"cases": [
+		{
+			"name": "new card graded again resets and relearns in 10min",
+			"card": { "reps": 0, "lapses": 0, "ef": 2.5, "interval": 0, "due": 1758240000 },
+			"grade": "again",
+			"now": 1758240000,
+			"expected": { "reps": 0, "lapses": 1, "ef": 2.5, "interval": 0, "due": 1758240600, "gradedAt": "2025-09-19T00:00:00Z" }
+		},
+		{
+			"name": "new card graded hard gets 1d and ef 2.36",
+			"card": { "reps": 0, "lapses": 0, "ef": 2.5, "interval": 0, "due": 1758240000 },
+			"grade": "hard",
+			"now": 1758240000,
+			"expected": { "reps": 1, "lapses": 0, "ef": 2.36, "interval": 1, "due": 1758326400, "gradedAt": "2025-09-19T00:00:00Z" }
+		},
+		{
+			"name": "new card graded good gets 1d and keeps ef 2.5",
+			"card": { "reps": 0, "lapses": 0, "ef": 2.5, "interval": 0, "due": 1758240000 },
+			"grade": "good",
+			"now": 1758240000,
+			"expected": { "reps": 1, "lapses": 0, "ef": 2.5, "interval": 1, "due": 1758326400, "gradedAt": "2025-09-19T00:00:00Z" }
+		},
+		{
+			"name": "new card graded easy gets 1d and ef 2.6",
+			"card": { "reps": 0, "lapses": 0, "ef": 2.5, "interval": 0, "due": 1758240000 },
+			"grade": "easy",
+			"now": 1758240000,
+			"expected": { "reps": 1, "lapses": 0, "ef": 2.6, "interval": 1, "due": 1758326400, "gradedAt": "2025-09-19T00:00:00Z" }
+		},
+		{
+			"name": "second success jumps to 6d",
+			"card": { "reps": 1, "lapses": 0, "ef": 2.5, "interval": 1, "due": 1758240000 },
+			"grade": "good",
+			"now": 1758240000,
+			"expected": { "reps": 2, "lapses": 0, "ef": 2.5, "interval": 6, "due": 1758758400, "gradedAt": "2025-09-19T00:00:00Z" }
+		},
+		{
+			"name": "third success grows by old ef",
+			"card": { "reps": 2, "lapses": 0, "ef": 2.36, "interval": 6, "due": 1758240000 },
+			"grade": "hard",
+			"now": 1758240000,
+			"expected": { "reps": 3, "lapses": 0, "ef": 2.2199999999999998, "interval": 15, "due": 1759536000, "gradedAt": "2025-09-19T00:00:00Z" }
+		},
+		{
+			"name": "easy grows by old ef plus one",
+			"card": { "reps": 3, "lapses": 0, "ef": 2.5, "interval": 6, "due": 1758240000 },
+			"grade": "easy",
+			"now": 1758240000,
+			"expected": { "reps": 4, "lapses": 0, "ef": 2.6, "interval": 16, "due": 1759622400, "gradedAt": "2025-09-19T00:00:00Z" }
+		},
+		{
+			"name": "ef clamps at floor 1.3",
+			"card": { "reps": 3, "lapses": 0, "ef": 1.35, "interval": 15, "due": 1758240000 },
+			"grade": "hard",
+			"now": 1758240000,
+			"expected": { "reps": 4, "lapses": 0, "ef": 1.3, "interval": 21, "due": 1760054400, "gradedAt": "2025-09-19T00:00:00Z" }
+		},
+		{
+			"name": "lapse on mature card",
+			"card": { "reps": 5, "lapses": 1, "ef": 2.2, "interval": 30, "due": 1758240000 },
+			"grade": "again",
+			"now": 1758240000,
+			"expected": { "reps": 0, "lapses": 2, "ef": 2.2, "interval": 0, "due": 1758240600, "gradedAt": "2025-09-19T00:00:00Z" }
+		}
+	]
+}

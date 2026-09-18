@@ -236,6 +236,128 @@ check("examcore formats clock and duration", function()
 	assert(ExamCore.formatDuration(3700) == "1h01m")
 end)
 
+check("srs matches the shared SM-2 conformance vectors (TS parity)", function()
+	local function decode_json(text)
+		local pos = 1
+		local parse_object, parse_array, parse_string, parse_number, parse_value
+
+		local function skip_ws()
+			while pos <= #text do
+				local c = text:sub(pos, pos)
+				if c == " " or c == "\t" or c == "\n" or c == "\r" then
+					pos = pos + 1
+				else
+					break
+				end
+			end
+		end
+
+		function parse_string()
+			pos = pos + 1
+			local out = {}
+			while pos <= #text do
+				local c = text:sub(pos, pos)
+				if c == '"' then
+					pos = pos + 1
+					return table.concat(out)
+				elseif c == "\\" then
+					local esc = text:sub(pos + 1, pos + 1)
+					pos = pos + 2
+					local map = { n = "\n", t = "\t", r = "\r", b = "\b", f = "\f", ['"'] = '"', ["\\"] = "\\", ["/"] = "/" }
+					if map[esc] then
+						out[#out + 1] = map[esc]
+					elseif esc == "u" then
+						local code = tonumber(text:sub(pos, pos + 3), 16)
+						pos = pos + 4
+						if code < 128 then
+							out[#out + 1] = string.char(code)
+						else
+							out[#out + 1] = string.char(192 + math.floor(code / 64), 128 + code % 64)
+						end
+					else
+						error("bad escape " .. esc)
+					end
+				else
+					out[#out + 1] = c
+					pos = pos + 1
+				end
+			end
+			error("unterminated string")
+		end
+
+		function parse_number()
+			local num = text:match("^%-?%d+%.?%d*[eE]?%d*", pos)
+			if not num then error("bad number at " .. pos) end
+			pos = pos + #num
+			return tonumber(num)
+		end
+
+		function parse_array()
+			pos = pos + 1
+			local arr = {}
+			skip_ws()
+			if text:sub(pos, pos) == "]" then pos = pos + 1 return arr end
+			while true do
+				arr[#arr + 1] = parse_value()
+				skip_ws()
+				local c = text:sub(pos, pos)
+				pos = pos + 1
+				if c == "]" then return arr end
+				assert(c == ",", "expected , in array")
+			end
+		end
+
+		function parse_object()
+			pos = pos + 1
+			local obj = {}
+			skip_ws()
+			if text:sub(pos, pos) == "}" then pos = pos + 1 return obj end
+			while true do
+				skip_ws()
+				local key = parse_string()
+				skip_ws()
+				assert(text:sub(pos, pos) == ":", "expected :")
+				pos = pos + 1
+				obj[key] = parse_value()
+				skip_ws()
+				local c = text:sub(pos, pos)
+				pos = pos + 1
+				if c == "}" then return obj end
+				assert(c == ",", "expected , in object")
+			end
+		end
+
+		function parse_value()
+			skip_ws()
+			local c = text:sub(pos, pos)
+			if c == "{" then return parse_object() end
+			if c == "[" then return parse_array() end
+			if c == '"' then return parse_string() end
+			if text:sub(pos, pos + 3) == "true" then pos = pos + 4 return true end
+			if text:sub(pos, pos + 4) == "false" then pos = pos + 5 return false end
+			if text:sub(pos, pos + 3) == "null" then pos = pos + 4 return nil end
+			return parse_number()
+		end
+
+		return parse_value()
+	end
+
+	local path = here .. "../../srs/fixtures/vectors.json"
+	local file = assert(io.open(path, "rb"), "cannot open " .. path)
+	local vectors = decode_json(file:read("*all"))
+	file:close()
+
+	local grade_index = { again = 1, hard = 2, good = 3, easy = 4 }
+	for _, case in ipairs(vectors.cases) do
+		local got = SRS.grade(case.card, grade_index[case.grade], case.now)
+		for _, field in ipairs({ "reps", "lapses", "ef", "interval", "due", "gradedAt" }) do
+			assert(got[field] == case.expected[field],
+				case.name .. ": " .. field .. " got " .. tostring(got[field])
+				.. " want " .. tostring(case.expected[field]))
+		end
+	end
+end)
+
 if failures > 0 then
 	print(string.format("\n%d failure(s)", failures))
 	os.exit(1)

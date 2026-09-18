@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { type FormEvent, useState } from "react"
-import { InkInput } from "@/components/ink"
+import { InkButton, InkCard, InkInput } from "@/components/ink"
 import { authClient } from "@/lib/auth/auth-client"
 import { t } from "@/locales/pt-BR"
 
@@ -34,10 +34,10 @@ function RegisterPage() {
 
 	return (
 		<div className="ink-page" style={{ maxWidth: 420 }}>
-			<e-title level="1">{t("app.name")}</e-title>
-			<e-divider />
-			<e-card>
-				<e-title level="2">{t("register.title")}</e-title>
+			<h1 className="ink-title ink-title--1">{t("app.name")}</h1>
+			<hr className="ink-divider" />
+			<InkCard>
+				<h2 className="ink-title ink-title--2">{t("register.title")}</h2>
 				<form onSubmit={handleSubmit}>
 					<div style={{ display: "grid", gap: "var(--ink-space-3)" }}>
 						<InkInput
@@ -60,18 +60,19 @@ function RegisterPage() {
 							onValueChange={setPassword}
 							autoComplete="new-password"
 						/>
-						{error ? <e-alert>{error}</e-alert> : null}
-						<e-button
+						{error ? <div className="ink-alert">{error}</div> : null}
+						<InkButton
 							variant="primary"
 							type="submit"
+							label={pending ? t("library.uploading") : t("register.submit")}
 							onClick={() => void handleSubmit()}
-						>
-							{pending ? t("library.uploading") : t("register.submit")}
-						</e-button>
+						/>
 					</div>
 				</form>
-			</e-card>
-			<e-link href="/login">{t("register.toLogin")}</e-link>
+			</InkCard>
+			<p className="ink-text">
+				<a href="/login">{t("register.toLogin")}</a>
+			</p>
 		</div>
 	)
 }

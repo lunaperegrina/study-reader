@@ -15,6 +15,9 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppCoursesCourseIdRouteImport } from './routes/_app.courses.$courseId'
+import { Route as AppCoursesCourseIdIndexRouteImport } from './routes/_app.courses.$courseId.index'
+import { Route as AppCoursesCourseIdReviewsRouteImport } from './routes/_app.courses.$courseId.reviews'
+import { Route as AppCoursesCourseIdLessonLessonIdRouteImport } from './routes/_app.courses.$courseId.lesson.$lessonId'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -45,20 +48,42 @@ const AppCoursesCourseIdRoute = AppCoursesCourseIdRouteImport.update({
   path: '/courses/$courseId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCoursesCourseIdIndexRoute = AppCoursesCourseIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppCoursesCourseIdRoute,
+} as any)
+const AppCoursesCourseIdReviewsRoute =
+  AppCoursesCourseIdReviewsRouteImport.update({
+    id: '/reviews',
+    path: '/reviews',
+    getParentRoute: () => AppCoursesCourseIdRoute,
+  } as any)
+const AppCoursesCourseIdLessonLessonIdRoute =
+  AppCoursesCourseIdLessonLessonIdRouteImport.update({
+    id: '/lesson/$lessonId',
+    path: '/lesson/$lessonId',
+    getParentRoute: () => AppCoursesCourseIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/settings': typeof AppSettingsRoute
-  '/courses/$courseId': typeof AppCoursesCourseIdRoute
+  '/courses/$courseId': typeof AppCoursesCourseIdRouteWithChildren
+  '/courses/$courseId/reviews': typeof AppCoursesCourseIdReviewsRoute
+  '/courses/$courseId/': typeof AppCoursesCourseIdIndexRoute
+  '/courses/$courseId/lesson/$lessonId': typeof AppCoursesCourseIdLessonLessonIdRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
-  '/courses/$courseId': typeof AppCoursesCourseIdRoute
+  '/courses/$courseId/reviews': typeof AppCoursesCourseIdReviewsRoute
+  '/courses/$courseId': typeof AppCoursesCourseIdIndexRoute
+  '/courses/$courseId/lesson/$lessonId': typeof AppCoursesCourseIdLessonLessonIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -67,13 +92,31 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
-  '/_app/courses/$courseId': typeof AppCoursesCourseIdRoute
+  '/_app/courses/$courseId': typeof AppCoursesCourseIdRouteWithChildren
+  '/_app/courses/$courseId/reviews': typeof AppCoursesCourseIdReviewsRoute
+  '/_app/courses/$courseId/': typeof AppCoursesCourseIdIndexRoute
+  '/_app/courses/$courseId/lesson/$lessonId': typeof AppCoursesCourseIdLessonLessonIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/register' | '/settings' | '/courses/$courseId'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/register'
+    | '/settings'
+    | '/courses/$courseId'
+    | '/courses/$courseId/reviews'
+    | '/courses/$courseId/'
+    | '/courses/$courseId/lesson/$lessonId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/register' | '/settings' | '/' | '/courses/$courseId'
+  to:
+    | '/login'
+    | '/register'
+    | '/settings'
+    | '/'
+    | '/courses/$courseId/reviews'
+    | '/courses/$courseId'
+    | '/courses/$courseId/lesson/$lessonId'
   id:
     | '__root__'
     | '/_app'
@@ -82,6 +125,9 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/_app/'
     | '/_app/courses/$courseId'
+    | '/_app/courses/$courseId/reviews'
+    | '/_app/courses/$courseId/'
+    | '/_app/courses/$courseId/lesson/$lessonId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -134,19 +180,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCoursesCourseIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/courses/$courseId/': {
+      id: '/_app/courses/$courseId/'
+      path: '/'
+      fullPath: '/courses/$courseId/'
+      preLoaderRoute: typeof AppCoursesCourseIdIndexRouteImport
+      parentRoute: typeof AppCoursesCourseIdRoute
+    }
+    '/_app/courses/$courseId/reviews': {
+      id: '/_app/courses/$courseId/reviews'
+      path: '/reviews'
+      fullPath: '/courses/$courseId/reviews'
+      preLoaderRoute: typeof AppCoursesCourseIdReviewsRouteImport
+      parentRoute: typeof AppCoursesCourseIdRoute
+    }
+    '/_app/courses/$courseId/lesson/$lessonId': {
+      id: '/_app/courses/$courseId/lesson/$lessonId'
+      path: '/lesson/$lessonId'
+      fullPath: '/courses/$courseId/lesson/$lessonId'
+      preLoaderRoute: typeof AppCoursesCourseIdLessonLessonIdRouteImport
+      parentRoute: typeof AppCoursesCourseIdRoute
+    }
   }
 }
+
+interface AppCoursesCourseIdRouteChildren {
+  AppCoursesCourseIdReviewsRoute: typeof AppCoursesCourseIdReviewsRoute
+  AppCoursesCourseIdIndexRoute: typeof AppCoursesCourseIdIndexRoute
+  AppCoursesCourseIdLessonLessonIdRoute: typeof AppCoursesCourseIdLessonLessonIdRoute
+}
+
+const AppCoursesCourseIdRouteChildren: AppCoursesCourseIdRouteChildren = {
+  AppCoursesCourseIdReviewsRoute: AppCoursesCourseIdReviewsRoute,
+  AppCoursesCourseIdIndexRoute: AppCoursesCourseIdIndexRoute,
+  AppCoursesCourseIdLessonLessonIdRoute: AppCoursesCourseIdLessonLessonIdRoute,
+}
+
+const AppCoursesCourseIdRouteWithChildren =
+  AppCoursesCourseIdRoute._addFileChildren(AppCoursesCourseIdRouteChildren)
 
 interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
-  AppCoursesCourseIdRoute: typeof AppCoursesCourseIdRoute
+  AppCoursesCourseIdRoute: typeof AppCoursesCourseIdRouteWithChildren
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
-  AppCoursesCourseIdRoute: AppCoursesCourseIdRoute,
+  AppCoursesCourseIdRoute: AppCoursesCourseIdRouteWithChildren,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

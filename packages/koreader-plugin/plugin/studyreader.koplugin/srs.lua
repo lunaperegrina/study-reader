@@ -27,6 +27,7 @@ function SRS.grade(card, grade_index, now)
         card.reps = 0
         card.interval = 0
         card.due = now + 600
+        card.gradedAt = os.date("!%Y-%m-%dT%H:%M:%SZ", now)
         return card
     end
     card.reps = (card.reps or 0) + 1
@@ -40,6 +41,7 @@ function SRS.grade(card, grade_index, now)
     local ef = card.ef + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
     card.ef = math.max(1.3, ef)
     card.due = now + card.interval * 86400
+    card.gradedAt = os.date("!%Y-%m-%dT%H:%M:%SZ", now)
     return card
 end
 

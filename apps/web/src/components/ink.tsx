@@ -1,71 +1,58 @@
-import { type ReactNode, useEffect, useRef } from "react"
+import {
+	type ButtonHTMLAttributes,
+	type CSSProperties,
+	type InputHTMLAttributes,
+	type ReactNode,
+} from "react"
 
-type InkInputProps = {
-	label?: string
-	placeholder?: string
-	type?: string
-	value: string
-	onValueChange: (value: string) => void
-	autoComplete?: string
+type InkButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> & {
+	label: ReactNode
+	variant?: "primary" | "default"
+	style?: CSSProperties
 }
 
-export function InkInput({
-	label,
-	placeholder,
-	type,
-	value,
-	onValueChange,
-	autoComplete,
-}: InkInputProps) {
-	const ref = useRef<HTMLElement>(null)
-
-	useEffect(() => {
-		const element = ref.current
-		if (!element) return
-
-		function readEvent(event: Event) {
-			const detail = (event as CustomEvent<{ value?: string }>).detail
-			const host = event.target as { value?: string } | null
-			onValueChange(
-				detail?.value ?? host?.value ?? (element as { value?: string }).value ?? "",
-			)
-		}
-
-		function readNative(event: Event) {
-			onValueChange((event.target as HTMLInputElement).value)
-		}
-
-		element.addEventListener("e-change", readEvent)
-		const native = element.querySelector("input, textarea")
-		native?.addEventListener("input", readNative)
-		return () => {
-			element.removeEventListener("e-change", readEvent)
-			native?.removeEventListener("input", readNative)
-		}
-	}, [onValueChange])
-
+export function InkButton({ label, variant, style, ...rest }: InkButtonProps) {
 	return (
-		<e-input
-			ref={ref}
-			label={label}
-			placeholder={placeholder}
-			type={type}
-			value={value}
-			autocomplete={autoComplete}
-		/>
+		<button
+			className={
+				variant === "primary" ? "sr-button sr-button--primary" : "sr-button"
+			}
+			style={style}
+			{...rest}
+		>
+			{label}
+		</button>
 	)
 }
 
-type InkDialogProps = {
-	open: boolean
-	title: string
-	children: ReactNode
+type InkInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "value"> & {
+	label?: string
+	value: string
+	onValueChange: (value: string) => void
 }
 
-export function InkDialog({ open, title, children }: InkDialogProps) {
+export function InkInput({ label, onValueChange, ...rest }: InkInputProps) {
 	return (
-		<e-dialog open={open ? true : undefined} label={title} heading={title}>
-			{children}
-		</e-dialog>
+		<label style={{ display: "grid", gap: "var(--ink-space-2)" }}>
+			{label ? <span className="ink-label">{label}</span> : null}
+			<input
+				className="ink-control"
+				onChange={(event) => onValueChange(event.target.value)}
+				{...rest}
+			/>
+		</label>
+	)
+}
+
+type InkCardProps = {
+	children: ReactNode
+	style?: CSSProperties
+}
+
+export function InkCard({ children, style }: InkCardProps) {
+	return (
+		<section className="ink-card" style={style}>
+			<div className="ink-card__body">{children}</div>
+		</section>
 	)
 }

@@ -14,6 +14,7 @@
 	"dependencies": {
 		"@marcomattes/epaper-components": "^2.0.0",
 		"@study-reader/contracts": "workspace:*",
+		"@study-reader/srs": "workspace:*",
 		"@study-reader/study-format": "workspace:*",
 		"@tailwindcss/vite": "^4.1.0",
 		"@tanstack/react-query": "^5.90.0",
@@ -22,6 +23,8 @@
 		"better-auth": "^1.7.1",
 		"react": "19.2.5",
 		"react-dom": "19.2.5",
+		"react-markdown": "^10.1.0",
+		"remark-gfm": "^4.0.1",
 		"tailwindcss": "^4.1.0"
 	},
 	"devDependencies": {
