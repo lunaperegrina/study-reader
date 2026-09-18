@@ -41,7 +41,7 @@ local function openCourse(entry)
     if not Store.isCached(entry.path, entry.mtime) then
         local preparing = InfoMessage:new{ text = _("Preparing course (first time only)…") }
         UIManager:show(preparing)
-        UIManager:forceRepaint()
+        UIManager:forceRePaint()
         local course, err = Store.open(entry.path, entry.mtime)
         UIManager:close(preparing)
         return course, err
