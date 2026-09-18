@@ -154,7 +154,8 @@ end
 
 local DIRECTIVE_STYLE = "color:#555;background-color:#eee;padding:0.3em 0.6em;display:block;margin:0.6em 0"
 
-function md2xhtml.convert(markdown, title)
+function md2xhtml.convert(markdown, title, image_prefix)
+    image_prefix = image_prefix or ""
     local body = {}
     for _, block in ipairs(splitBlocks(markdown)) do
         local directive = directiveOf(block)
@@ -170,7 +171,7 @@ function md2xhtml.convert(markdown, title)
             else
                 body[#body + 1] = string.format(
                     '<div style="text-align:center"><img src="%s" alt="image" style="max-width:95%%"/></div>',
-                    escapeXml(directive.ref))
+                    escapeXml(image_prefix .. directive.ref))
             end
         elseif block[1]:match("^%s*```") then
             local code = {}

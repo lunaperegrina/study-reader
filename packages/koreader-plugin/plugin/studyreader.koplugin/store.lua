@@ -2,8 +2,14 @@
 
 A .study file is a ZIP with manifest.json, content/*.md, questions/questions.json,
 flashcards/flashcards.json and assets/ (see the .study spec v1). The package is
-read-only: lessons are rendered to XHTML under <koreader-data>/studyreader/render
-so crengine can display them with full formatting.
+read-only.
+
+Performance model: opening a course either hits the on-disk cache
+(<koreader-data>/studyreader/cache/<course-id>/, stamped by version+mtime) or
+extracts the whole archive in a SINGLE sequential pass. Lesson markdown lives
+in memory; question/flashcard banks decode lazily; lesson XHTML renders once
+per course version (into cache_dir/render/) and references extracted assets
+by relative path.
 ]]
 
 local Archiver = require("ffi/archiver")
@@ -18,8 +24,12 @@ local Store = {}
 
 local course_cache = {}
 
-local function renderRoot()
-    return DataStorage:getDataDir() .. "/studyreader/render"
+local function studyRoot()
+    return DataStorage:getDataDir() .. "/studyreader"
+end
+
+function Store.cacheDir(course_id)
+    return string.format("%s/cache/%s", studyRoot(), course_id or "unknown")
 end
 
 local function fileExists(path)
@@ -30,29 +40,30 @@ local function dirExists(path)
     return lfs.attributes(path, "mode") == "directory"
 end
 
+local function shellEscape(path)
+    return "'" .. path:gsub("'", "'\\''") .. "'"
+end
+
 local function ensureDir(path)
-    if lfs.attributes(path, "mode") == "directory" then return true end
+    if dirExists(path) then return true end
     local parent = path:match("^(.*)/[^/]+$")
-    if parent and parent ~= "" and lfs.attributes(parent, "mode") ~= "directory" then
+    if parent and parent ~= "" and not dirExists(parent) then
         ensureDir(parent)
     end
     local ok, err = lfs.mkdir(path)
-    if not ok and lfs.attributes(path, "mode") ~= "directory" then
+    if not ok and not dirExists(path) then
         logger.warn("studyreader: cannot create dir", path, err)
         return false
     end
     return true
 end
 
-local function plainReplace(haystack, old, new)
-    local start = haystack:find(old, 1, true)
-    if not start then return haystack end
-    return haystack:sub(1, start - 1) .. new
-        .. plainReplace(haystack:sub(start + #old), old, new)
-end
-
-local function shellEscape(path)
-    return "'" .. path:gsub("'", "'\\''") .. "'"
+local function readTextFile(path)
+    local file = io.open(path, "rb")
+    if not file then return nil end
+    local content = file:read("*all")
+    file:close()
+    return content
 end
 
 function Store.getScanDirs()
@@ -67,7 +78,7 @@ function Store.getScanDirs()
     local home = G_reader_settings and G_reader_settings:readSetting("home_dir")
     if home then add(home .. "/study") end
     add("/mnt/us/documents/study")
-    add(DataStorage:getDataDir() .. "/studyreader/courses")
+    add(studyRoot() .. "/courses")
     table.sort(dirs)
     return dirs
 end
@@ -92,29 +103,97 @@ function Store.listCourses()
     return courses
 end
 
-local function readEntries(path, names)
+local function currentStamp(path, version)
+    return string.format("v%d|%s", version or 1, path)
+end
+
+local function readStamp(cache_dir)
+    return readTextFile(cache_dir .. "/stamp")
+end
+
+local function writeStamp(cache_dir, path, version)
+    local file = io.open(cache_dir .. "/stamp", "wb")
+    if file then
+        file:write(currentStamp(path, version), "\n")
+        file:close()
+    end
+end
+
+local function extractToCache(path, cache_dir)
+    ensureDir(cache_dir)
+    os.execute("rm -rf " .. shellEscape(cache_dir))
+    ensureDir(cache_dir)
     local arc = Archiver.Reader:new()
     if not arc:open(path) then
         return nil, "cannot open archive"
     end
-    for _ in arc:iterate() do end
-    local out = {}
-    for _, name in ipairs(names) do
-        out[name] = arc:extractToMemory(name)
+    for entry in arc:iterate() do
+        if entry.mode == "file" then
+            local dest = cache_dir .. "/" .. entry.path
+            local dest_dir = dest:match("^(.*)/[^/]+$")
+            if dest_dir then ensureDir(dest_dir) end
+            if not arc:extractToPath(entry.path, dest) then
+                logger.warn("studyreader: extract failed:", entry.path, arc.err)
+            end
+        end
     end
     arc:close()
-    return out
+    return true
 end
 
-local function readEntry(path, entry)
-    local out, err = readEntries(path, { entry })
-    if not out then
-        return nil, err
+local function loadFromCache(cache_dir, path, mtime)
+    local manifest_raw = readTextFile(cache_dir .. "/manifest.json")
+    if not manifest_raw then return nil end
+    local ok, manifest = pcall(JSON.decode, manifest_raw)
+    if not ok or type(manifest) ~= "table" then return nil end
+    if (manifest.formatVersion or 0) > 1 then
+        return nil, string.format(
+            "This course requires Study Format v%d. Please update the StudyReader plugin.",
+            manifest.formatVersion)
     end
-    if not out[entry] then
-        return nil, "cannot read entry " .. entry
+
+    local lesson_md = {}
+    for module in lfs.dir(cache_dir .. "/content") do
+        if module:match("%.md$") then
+            local content = readTextFile(cache_dir .. "/content/" .. module)
+            if content then lesson_md["content/" .. module] = content end
+        end
     end
-    return out[entry]
+
+    return {
+        path = path,
+        mtime = mtime,
+        id = manifest.id or "unknown",
+        manifest = manifest,
+        lesson_md = lesson_md,
+        questions_raw = readTextFile(cache_dir .. "/questions/questions.json"),
+        flashcards_raw = readTextFile(cache_dir .. "/flashcards/flashcards.json"),
+        cache_dir = cache_dir,
+        _questions = false,
+        _flashcards = false,
+    }
+end
+
+function Store.isCached(path, mtime)
+    local cached = course_cache[path]
+    if cached and cached.mtime == mtime then
+        return true
+    end
+    local arc = Archiver.Reader:new()
+    if not arc:open(path) then return false end
+    local manifest_raw
+    for entry in arc:iterate() do
+        if entry.path == "manifest.json" and entry.mode == "file" then
+            manifest_raw = arc:extractToMemory("manifest.json")
+            break
+        end
+    end
+    arc:close()
+    if not manifest_raw then return false end
+    local ok, manifest = pcall(JSON.decode, manifest_raw)
+    if not ok or type(manifest) ~= "table" then return false end
+    return readStamp(Store.cacheDir(manifest.id or "unknown"))
+        == currentStamp(path, manifest.version)
 end
 
 function Store.open(path, mtime)
@@ -122,19 +201,22 @@ function Store.open(path, mtime)
     if cached and cached.mtime == mtime then
         return cached.course
     end
-    local contents, err = readEntries(path, {
-        "manifest.json",
-        "questions/questions.json",
-        "flashcards/flashcards.json",
-    })
-    if not contents then
-        return nil, err
+
+    local manifest_probe = nil
+    local arc = Archiver.Reader:new()
+    if arc:open(path) then
+        for entry in arc:iterate() do
+            if entry.path == "manifest.json" and entry.mode == "file" then
+                manifest_probe = arc:extractToMemory("manifest.json")
+                break
+            end
+        end
+        arc:close()
     end
-    local manifest_raw = contents["manifest.json"]
-    if not manifest_raw then
-        return nil, "missing manifest.json"
+    if not manifest_probe then
+        return nil, "cannot read manifest.json"
     end
-    local ok, manifest = pcall(JSON.decode, manifest_raw)
+    local ok, manifest = pcall(JSON.decode, manifest_probe)
     if not ok or type(manifest) ~= "table" then
         return nil, "invalid manifest.json"
     end
@@ -144,33 +226,43 @@ function Store.open(path, mtime)
             manifest.formatVersion)
     end
 
-    local questions = {}
-    local questions_raw = contents["questions/questions.json"]
-    if questions_raw then
-        ok, questions = pcall(JSON.decode, questions_raw)
-        if not ok or type(questions) ~= "table" then questions = {} end
+    local cache_dir = Store.cacheDir(manifest.id or "unknown")
+    if readStamp(cache_dir) ~= currentStamp(path, manifest.version) then
+        local extracted, err = extractToCache(path, cache_dir)
+        if not extracted then
+            return nil, err
+        end
+        writeStamp(cache_dir, path, manifest.version)
     end
 
-    local flashcards = {}
-    local flashcards_raw = contents["flashcards/flashcards.json"]
-    if flashcards_raw then
-        ok, flashcards = pcall(JSON.decode, flashcards_raw)
-        if not ok or type(flashcards) ~= "table" then flashcards = {} end
+    course = loadFromCache(cache_dir, path, mtime)
+    if not course then
+        return nil, "cache is inconsistent — reopen the course to re-extract"
     end
-
-    local course = {
-        path = path,
-        id = manifest.id or "unknown",
-        manifest = manifest,
-        questions = questions,
-        flashcards = flashcards,
-    }
     course_cache[path] = { mtime = mtime, course = course }
     return course
 end
 
-function Store.readLessonMarkdown(course, content_path)
-    return readEntry(course.path, content_path)
+function Store.getQuestions(course)
+    if course._questions == false then
+        course._questions = {}
+        if course.questions_raw then
+            local ok, value = pcall(JSON.decode, course.questions_raw)
+            if ok and type(value) == "table" then course._questions = value end
+        end
+    end
+    return course._questions
+end
+
+function Store.getFlashcards(course)
+    if course._flashcards == false then
+        course._flashcards = {}
+        if course.flashcards_raw then
+            local ok, value = pcall(JSON.decode, course.flashcards_raw)
+            if ok and type(value) == "table" then course._flashcards = value end
+        end
+    end
+    return course._flashcards
 end
 
 function Store.lessons(course)
@@ -189,6 +281,28 @@ function Store.lessons(course)
     return lessons
 end
 
+function Store.modules(course)
+    local modules = {}
+    for _, module in ipairs(course.manifest.modules or {}) do
+        local lessons = {}
+        for _, lesson in ipairs(module.lessons or {}) do
+            lessons[#lessons + 1] = {
+                id = lesson.id,
+                title = lesson.title,
+                content = lesson.content,
+                module_title = module.title,
+                module_id = module.id,
+            }
+        end
+        modules[#modules + 1] = { id = module.id, title = module.title, lessons = lessons }
+    end
+    return modules
+end
+
+function Store.lessonMarkdown(course, content_path)
+    return course.lesson_md[content_path]
+end
+
 function Store.lessonById(course, lesson_id)
     for _, lesson in ipairs(Store.lessons(course)) do
         if lesson.id == lesson_id then return lesson end
@@ -196,70 +310,37 @@ function Store.lessonById(course, lesson_id)
     return nil
 end
 
-function Store.questionIdsForLesson(course, lesson)
-    local markdown = Store.readLessonMarkdown(course, lesson.content)
-    if not markdown then return {} end
-    local parsed = md2xhtml.parseDirectives(markdown)
-    return parsed.quizzes
-end
-
-local function extractAsset(course, asset_path, images_dir)
-    local dest = images_dir .. "/" .. asset_path:gsub("/", "_")
-    if fileExists(dest) then return dest end
-    local arc = Archiver.Reader:new()
-    if not arc:open(course.path) then return nil end
-    for _ in arc:iterate() do end
-    local ok = arc:extractToPath(asset_path, dest)
-    if not ok then
-        logger.warn("studyreader: extractAsset failed:", asset_path, arc.err)
+function Store.nextLesson(course, lesson_id)
+    local lessons = Store.lessons(course)
+    for i, lesson in ipairs(lessons) do
+        if lesson.id == lesson_id then
+            return lessons[i + 1]
+        end
     end
-    arc:close()
-    return ok and dest or nil
+    return nil
 end
 
-local function readStamp(course)
-    local file = io.open(renderRoot() .. "/" .. course.id .. "/stamp", "rb")
-    if not file then return nil end
-    local stamp = file:read("*l")
-    file:close()
-    return stamp
+function Store.questionIdsForLesson(course, lesson)
+    local markdown = Store.lessonMarkdown(course, lesson.content)
+    if not markdown then return {} end
+    return md2xhtml.parseDirectives(markdown).quizzes
 end
 
 function Store.renderLesson(course, lesson)
-    local out_dir = renderRoot() .. "/" .. course.id
-    local stamp = string.format("v%d|%s", course.manifest.version or 1, course.path)
-    if readStamp(course) ~= stamp then
-        os.execute("rm -rf " .. shellEscape(out_dir))
+    local render_dir = course.cache_dir .. "/render"
+    if not ensureDir(render_dir) then
+        return nil, "cannot create render dir"
     end
-    ensureDir(renderRoot())
-    ensureDir(out_dir)
-    ensureDir(out_dir .. "/images")
-    local stamp_file = io.open(out_dir .. "/stamp", "wb")
-    if stamp_file then
-        stamp_file:write(stamp, "\n")
-        stamp_file:close()
+    local xhtml_path = render_dir .. "/" .. lesson.id .. ".xhtml"
+    if fileExists(xhtml_path) then
+        return xhtml_path
     end
 
-    local xhtml_path = out_dir .. "/" .. lesson.id .. ".xhtml"
-    local markdown = Store.readLessonMarkdown(course, lesson.content)
+    local markdown = Store.lessonMarkdown(course, lesson.content)
     if not markdown then
         return nil, "cannot read lesson content"
     end
-    local parsed = md2xhtml.convert(markdown, lesson.title)
-    for _, image_path in ipairs(parsed.images) do
-        local extracted = extractAsset(course, image_path, out_dir .. "/images")
-        if extracted then
-            parsed.xhtml = plainReplace(
-                parsed.xhtml,
-                'src="' .. image_path .. '"',
-                'src="images/' .. image_path:gsub("/", "_") .. '"')
-        else
-            parsed.xhtml = plainReplace(
-                parsed.xhtml,
-                'src="' .. image_path .. '"',
-                'alt="missing image" src=""')
-        end
-    end
+    local parsed = md2xhtml.convert(markdown, lesson.title, "../")
     local out = io.open(xhtml_path, "wb")
     if not out then
         return nil, "cannot write " .. xhtml_path

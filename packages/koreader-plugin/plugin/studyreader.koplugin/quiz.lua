@@ -1,4 +1,8 @@
---[[-- QuizWidget: runs a lesson's quiz inline (single/multiple choice).]]
+--[[-- QuizWidget: runs a lesson's quiz inline (single/multiple choice).
+
+v2: practice mode re-asks every question on completed lessons; the summary
+screen shows the score and chains straight into the next lesson.
+]]
 
 local Blitbuffer = require("ffi/blitbuffer")
 local Button = require("ui/widget/button")
@@ -8,7 +12,6 @@ local FocusManager = require("ui/widget/focusmanager")
 local Font = require("ui/font")
 local FrameContainer = require("ui/widget/container/framecontainer")
 local Geom = require("ui/geometry")
-local InfoMessage = require("ui/widget/infomessage")
 local Size = require("ui/size")
 local TextBoxWidget = require("ui/widget/textboxwidget")
 local TextWidget = require("ui/widget/textwidget")
@@ -24,6 +27,9 @@ local QuizWidget = FocusManager:extend{
     lesson = nil,
     question_ids = nil,
     state = nil,
+    practice = false,
+    next_lesson = nil,
+    onNext = nil,
     onExit = nil,
 }
 
@@ -32,7 +38,7 @@ local PADDING = Size.padding.large
 function QuizWidget:init()
     self.pending = {}
     for _, id in ipairs(self.question_ids) do
-        if not State.answeredQuestion(self.state, id) then
+        if self.practice or not State.answeredQuestion(self.state, id) then
             self.pending[#self.pending + 1] = id
         end
     end
@@ -40,6 +46,7 @@ function QuizWidget:init()
     self.session_correct = 0
     self.index = 1
     self.selected = {}
+    self.mode = nil
     self.dimen = Geom:new{
         w = Device.screen:getWidth(),
         h = Device.screen:getHeight(),
@@ -77,16 +84,6 @@ function QuizWidget:_populate()
     local function addSpan(h)
         group[#group + 1] = VerticalSpan:new{ width = h }
     end
-    local function addRow(widget)
-        group[#group + 1] = CenterContainer:new{
-            dimen = Geom:new{ w = width, h = widget:getSize().h },
-            widget,
-        }
-    end
-    local function addFocusRow(widget)
-        self.layout[#self.layout + 1] = { widget }
-        addRow(widget)
-    end
     local function addButton(text, callback)
         local button = Button:new{
             text = text,
@@ -94,14 +91,20 @@ function QuizWidget:_populate()
             callback = callback,
             show_parent = self,
         }
-        addFocusRow(button)
+        self.layout[#self.layout + 1] = { button }
+        group[#group + 1] = CenterContainer:new{
+            dimen = Geom:new{ w = width, h = button:getSize().h },
+            button,
+        }
         return button
     end
 
-    if #self.pending == 0 then
+    if self.mode == "summary" then
+        self:_populateSummary(group, addText, addWrapped, addSpan, addButton)
+    elseif #self.pending == 0 then
         addText(_("Quiz done!"), Font:getFace("NotoSans-Bold.ttf", 26), true)
         addSpan(PADDING)
-        self:_populateSummary(group, addSpan, addButton)
+        addButton(_("Close"), function() self:onClose() end)
     elseif self.mode == "feedback" then
         self:_populateFeedback(group, addText, addWrapped, addSpan, addButton)
     else
@@ -170,13 +173,28 @@ function QuizWidget:_populateFeedback(group, addText, addWrapped, addSpan, addBu
     if self.index < #self.pending then
         addButton(_("Next question"), function() self:onNext() end)
     else
-        addButton(_("Finish"), function() self:onFinish() end)
+        addButton(_("See results"), function() self:onFinish() end)
     end
 end
 
-function QuizWidget:_populateSummary(group, addSpan, addButton)
+function QuizWidget:_populateSummary(group, addText, addWrapped, addSpan, addButton)
+    local pct = self.session_total > 0
+        and math.floor(self.session_correct * 100 / self.session_total) or 0
+    addText(_("Lesson complete!"), Font:getFace("NotoSans-Bold.ttf", 30), true)
     addSpan(PADDING)
-    addButton(_("Close"), function() self:onClose() end)
+    addWrapped(string.format(_("Score: %d / %d (%d%%)"),
+        self.session_correct, self.session_total, pct),
+        Font:getFace("cfont", 26))
+    addSpan(PADDING)
+    if self.next_lesson then
+        addButton(string.format(_("Next lesson: %s"), self.next_lesson.title),
+            function()
+                UIManager:close(self)
+                if self.onNext then self.onNext() end
+            end)
+        addSpan(Size.padding.default)
+    end
+    addButton(_("Back to course"), function() self:onClose() end)
 end
 
 function QuizWidget:onOption(option_id)
@@ -240,24 +258,12 @@ function QuizWidget:onFinish()
             all_answered = false
         end
     end
-    local completed = false
     if all_answered and self.lesson then
-        if not State.completedLesson(self.state, self.lesson.id) then
-            completed = true
-        end
         State.markLessonDone(self.state, self.lesson.id)
         State.save(self.course.id, self.state)
     end
-    UIManager:close(self)
-    UIManager:show(InfoMessage:new{
-        text = completed
-            and string.format(_("Lesson complete! Session: %d/%d correct."),
-                self.session_correct, self.session_total)
-            or string.format(_("Session: %d/%d correct."), self.session_correct,
-                self.session_total),
-        timeout = 4,
-    })
-    if self.onExit then self.onExit() end
+    self.mode = "summary"
+    self:_populate()
 end
 
 function QuizWidget:onClose()
