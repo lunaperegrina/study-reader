@@ -22,7 +22,7 @@ function collectFiles(dir: string, base = dir): StudyFile[] {
 		if (statSync(full).isDirectory()) {
 			files.push(...collectFiles(full, base));
 		} else {
-			files.push({ path: full.slice(base.length + 1), data: readFileSync(full) });
+			files.push({ path: full.slice(base.length + 1).replaceAll("\\", "/"), data: readFileSync(full) });
 		}
 	}
 	return files;

@@ -151,6 +151,10 @@ function Plugin:_cleanHistory()
 end
 
 function Plugin:init()
+    -- FileManagerMenu/ReaderMenu only call addToMainMenu() on registered widgets.
+    if self.ui and self.ui.menu then
+        self.ui.menu:registerToMainMenu(self)
+    end
     -- TEMP probe: device geometry into crash.log — remove when exam layout is stable
     local ok_probe, Screen = pcall(function() return require("device").screen end)
     if ok_probe and Screen then
