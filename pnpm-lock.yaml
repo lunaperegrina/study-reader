@@ -8,6 +8,8 @@ importers:
 
   .: {}
 
+  packages/koreader-plugin: {}
+
   packages/mdx-to-study:
     dependencies:
       '@study-reader/study-format':

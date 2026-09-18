@@ -20,6 +20,7 @@ dofile(plugin .. "md2xhtml.lua")
 
 local md2xhtml = dofile(plugin .. "md2xhtml.lua")
 local SRS = dofile(plugin .. "srs.lua")
+local ExamCore = dofile(plugin .. "examcore.lua")
 
 check("md2xhtml renders headings, tables, quotes, directives", function()
 	local md = table.concat({
@@ -172,6 +173,67 @@ check("state treats timestamped lessons as completed", function()
 		package.loaded[name] = saved[name]
 	end
 	assert(ok, err)
+end)
+
+check("examcore samples without duplicates and clips count", function()
+	math.randomseed(42)
+	local ids = {}
+	for i = 1, 100 do ids[i] = "q" .. i end
+	local picked = ExamCore.sample(ids, 10)
+	assert(#picked == 10, "count")
+	local seen = {}
+	for _, id in ipairs(picked) do
+		assert(not seen[id], "duplicate " .. id)
+		seen[id] = true
+	end
+	local all = ExamCore.sample(ids, 0)
+	assert(#all == 100, "no count returns full bank")
+end)
+
+check("examcore grades all-or-nothing with 70% cutoff", function()
+	local questions = {
+		a = { correct = { "x" } },
+		b = { correct = { "x", "y" } },
+		c = { correct = { "z" } },
+		d = { correct = { "x" } },
+		e = { correct = { "x", "y" } },
+		f = { correct = { "z" } },
+		g = { correct = { "x" } },
+		h = { correct = { "z" } },
+		i = { correct = { "x" } },
+		j = { correct = { "x" } },
+	}
+	local result = ExamCore.grade(questions, { "a", "b", "c" }, {
+		a = { "x" },
+		b = { "x", "z" },
+	})
+	assert(result.total == 3)
+	assert(result.answered == 2, "answered")
+	assert(result.correct == 1, "correct")
+	assert(result.score == 33, "score")
+	assert(not result.passed)
+	local perfect = ExamCore.grade(questions, { "a", "b", "c" }, {
+		a = { "x" },
+		b = { "y", "x" },
+		c = { "z" },
+	})
+	assert(perfect.correct == 3 and perfect.score == 100 and perfect.passed)
+	local borderline = ExamCore.grade(questions,
+		{ "a", "b", "c", "d", "e", "f", "g", "h", "i", "j" }, {
+			a = { "x" }, b = { "x", "y" }, c = { "z" },
+			d = { "x" }, e = { "x", "y" }, f = { "z" },
+			g = { "x" }, h = { "wrong" },
+		})
+	assert(borderline.score == 70 and borderline.passed, "70 exact passes")
+end)
+
+check("examcore formats clock and duration", function()
+	assert(ExamCore.formatClock(0) == "0:00")
+	assert(ExamCore.formatClock(65) == "1:05")
+	assert(ExamCore.formatClock(-5) == "0:00")
+	assert(ExamCore.formatDuration(45) == "45s")
+	assert(ExamCore.formatDuration(90) == "1m")
+	assert(ExamCore.formatDuration(3700) == "1h01m")
 end)
 
 if failures > 0 then

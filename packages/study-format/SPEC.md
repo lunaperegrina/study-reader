@@ -186,7 +186,32 @@ Spec revision history:
 | --- | --- | --- |
 | 1 | 2026-09-17 | Initial public specification. |
 
-## 9. Extensions
+## 9. Exams (optional, reserved)
+
+A package MAY ship authored exams in `exams/<name>.json`:
+
+```json
+{
+  "title": "Simulado oficial — 60 questões",
+  "questionIds": ["M1-01-q1", "M2-03-q2"],
+  "timeLimitMin": 110,
+  "passingScore": 70
+}
+```
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `title` | ✔ | Display title. |
+| `questionIds` | ✔ | Ordered ids from the quiz bank. |
+| `timeLimitMin` |  | Countdown in minutes; omit for untimed. |
+| `passingScore` |  | Passing percentage; consumers default to 70. |
+
+Exams are pure metadata over the quiz bank — no duplicated content. Consumers
+without exam support MUST ignore the folder (per §2). Runtime-generated
+practice exams (random sampling of the bank) need no `exams/` file at all:
+they are consumer state, not package content.
+
+## 10. Extensions
 
 Vendors MAY add domain metadata under `manifest.extensions.<vendor>`:
 
@@ -201,7 +226,7 @@ Vendors MAY add domain metadata under `manifest.extensions.<vendor>`:
 Consumers ignore vendors they do not understand; they MUST NOT strip unknown
 extensions when re-packaging.
 
-## 10. Minimum viable package
+## 11. Minimum viable package
 
 A valid `.study` file needs only:
 
@@ -212,7 +237,7 @@ content/001-intro.md     (any Markdown; zero directives)
 
 Quiz bank, flashcard deck and assets are optional.
 
-## 11. Validation
+## 12. Validation
 
 Machine-readable JSON Schemas ship alongside this spec:
 

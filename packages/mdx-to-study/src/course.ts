@@ -17,6 +17,7 @@ export type SourceModule = {
 
 export type CoursePlan = {
 	modules: SourceModule[];
+	isEpubLayout?: boolean;
 };
 
 type SourceManifest = {
@@ -31,6 +32,12 @@ type SourceManifest = {
 
 async function readJson(path: string): Promise<unknown> {
 	return JSON.parse(await readFile(path, "utf8"));
+}
+
+async function fileExists(path: string): Promise<boolean> {
+	return readFile(path, "utf8")
+		.then(() => true)
+		.catch(() => false);
 }
 
 async function moduleOrder(
@@ -95,7 +102,51 @@ async function resolveStem(moduleDir: string, slug: string): Promise<string> {
 	return candidates[0];
 }
 
+async function readEpubContentPlan(sourceRoot: string): Promise<CoursePlan> {
+	const rootMeta = (await readJson(join(sourceRoot, "meta.json"))) as {
+		title?: string;
+		pages?: string[];
+	};
+	const modules: SourceModule[] = [];
+	for (const [moduleIndex, key] of (rootMeta.pages ?? []).entries()) {
+		const moduleDir = join(sourceRoot, key);
+		const modMeta = (await readJson(join(moduleDir, "meta.json"))) as {
+			title?: string;
+			pages?: string[];
+		};
+		const lessons: SourceLesson[] = [];
+		for (const [lessonIndex, stem] of (modMeta.pages ?? []).entries()) {
+			lessons.push({
+				fid: `M${moduleIndex + 1}-${String(lessonIndex + 1).padStart(2, "0")}`,
+				title: stem,
+				slug: stem,
+				fileStem: stem,
+				moduleKey: key,
+			});
+		}
+		modules.push({
+			key,
+			title: modMeta.title ?? key,
+			lessons: await lessonOrder(moduleDir, lessons),
+		});
+	}
+	return { modules, isEpubLayout: true };
+}
+
 export async function readCoursePlan(
+	sourceRoot: string,
+	contentDir: string,
+): Promise<CoursePlan> {
+	if (await fileExists(join(sourceRoot, "manifest.json"))) {
+		return readSitePlan(sourceRoot, contentDir);
+	}
+	if (await fileExists(join(sourceRoot, "meta.json"))) {
+		return readEpubContentPlan(sourceRoot);
+	}
+	throw new Error(`no manifest.json or meta.json found under ${sourceRoot}`);
+}
+
+async function readSitePlan(
 	sourceRoot: string,
 	contentDir: string,
 ): Promise<CoursePlan> {

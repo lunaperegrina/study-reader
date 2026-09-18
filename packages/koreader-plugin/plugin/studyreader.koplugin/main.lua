@@ -80,11 +80,23 @@ function Plugin:_handleStudyLink(url)
                 break
             end
         end
-        if module then
-            Screens.moduleMenu(active.course, module)
-            return true
+        if not module then
+            return false
         end
-        return false
+        local course = active.course
+        Screens.active = nil
+        local plugin = self
+        UIManager:scheduleIn(0.1, function()
+            if plugin.ui and plugin.ui.onClose then
+                pcall(function()
+                    plugin.ui:onClose()
+                end)
+            end
+            Screens.myCourses()
+            Screens.courseMenu(course)
+            Screens.moduleMenu(course, module)
+        end)
+        return true
     end
     return false
 end
@@ -143,6 +155,15 @@ function Plugin:init()
     if self.ui and self.ui.menu then
         self.ui.menu:registerToMainMenu(self)
     end
+    -- TEMP probe: device geometry into crash.log — remove when exam layout is stable
+    local ok_probe, Screen = pcall(function() return require("device").screen end)
+    if ok_probe and Screen then
+        local _, dpi = pcall(function() return Screen:getDPI() end)
+        local _, scale16 = pcall(function() return Screen:scaleBySize(16) end)
+        logger.info(string.format(
+            "studyreader probe: screen %dx%d dpi=%s scale16=%s",
+            Screen:getWidth(), Screen:getHeight(), tostring(dpi), tostring(scale16)))
+    end
     self:_registerSimpleUIAction()
     self:_cleanHistory()
     UIManager:scheduleIn(5, function()
@@ -154,6 +175,10 @@ function Plugin:onReaderReady()
     self:_registerSimpleUIAction()
     self:_patchReaderLink()
     self:_cleanHistory()
+end
+
+function Plugin:onCloseDocument()
+    Screens.active = nil
 end
 
 function Plugin:_finishActiveLesson()
