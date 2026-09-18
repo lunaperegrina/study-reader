@@ -11,7 +11,9 @@ custom actions.
 ]]
 
 local Dispatcher = require("dispatcher")
+local UIManager = require("ui/uimanager")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
+local logger = require("logger")
 local _ = require("gettext")
 
 local Screens = require("screens")
@@ -37,6 +39,7 @@ function Plugin:_registerSimpleUIAction()
     if self._sui_registered then return end
     local ok, QA = pcall(require, "features/sui_quickactions")
     if not ok or type(QA) ~= "table" or type(QA.register) ~= "function" then
+        logger.dbg("studyreader: Simple UI not available (", tostring(QA), ")")
         return
     end
     QA.register({
@@ -47,13 +50,17 @@ function Plugin:_registerSimpleUIAction()
         end,
     })
     self._sui_registered = true
+    logger.info("studyreader: Simple UI quick action registered")
+end
+
+function Plugin:init()
+    self:_registerSimpleUIAction()
+    UIManager:scheduleIn(5, function()
+        self:_registerSimpleUIAction()
+    end)
 end
 
 function Plugin:onReaderReady()
-    self:_registerSimpleUIAction()
-end
-
-function Plugin:onFileManagerReady()
     self:_registerSimpleUIAction()
 end
 
