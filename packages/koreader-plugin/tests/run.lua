@@ -146,6 +146,34 @@ check("main registers itself in the KOReader main menu", function()
 	assert(ok, err)
 end)
 
+check("state treats timestamped lessons as completed", function()
+	local stubs = {
+		["datastorage"] = { getDataDir = function() return "/tmp" end },
+		["json"] = {},
+		["logger"] = { warn = function() end },
+		["libs/libkoreader-lfs"] = {},
+	}
+	local saved = {}
+	for name, mod in pairs(stubs) do
+		saved[name] = package.loaded[name]
+		package.loaded[name] = mod
+	end
+	local ok, err = pcall(function()
+		local State = dofile(plugin .. "state.lua")
+		local state = { progress = {}, answers = {}, reviews = {} }
+		assert(not State.completedLesson(state, "l1"), "fresh lesson completed")
+		State.markLessonDone(state, "l1")
+		assert(State.completedLesson(state, "l1"), "markLessonDone not seen as completed")
+		state.progress.completedLessons.legacy = true
+		assert(State.completedLesson(state, "legacy"), "legacy boolean entry")
+		assert(not State.completedLesson(state, "l2"), "other lesson completed")
+	end)
+	for name in pairs(stubs) do
+		package.loaded[name] = saved[name]
+	end
+	assert(ok, err)
+end)
+
 if failures > 0 then
 	print(string.format("\n%d failure(s)", failures))
 	os.exit(1)

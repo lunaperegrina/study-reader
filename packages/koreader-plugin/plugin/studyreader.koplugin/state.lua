@@ -91,8 +91,9 @@ function State.getLastCourse()
 end
 
 function State.completedLesson(state, lesson_id)
-    return state.progress.completedLessons
-        and state.progress.completedLessons[lesson_id] == true
+    -- markLessonDone stores an ISO timestamp; older data may hold `true`.
+    local completed = state.progress.completedLessons
+    return completed ~= nil and completed[lesson_id] ~= nil and completed[lesson_id] ~= false
 end
 
 function State.markLessonDone(state, lesson_id)
