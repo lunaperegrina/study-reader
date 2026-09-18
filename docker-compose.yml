@@ -1,0 +1,30 @@
+name: study-reader
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: studyreader_postgres
+    environment:
+      POSTGRES_DB: studyreader_db
+      POSTGRES_USER: studyreader_user
+      POSTGRES_PASSWORD: studyreader_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      # host 5435 para coexistir com outros Postgres locais (5432 wayt,
+      # 5433 poligloteca, 5434 up2code); bind apenas em localhost
+      - "127.0.0.1:5435:5432"
+    networks:
+      - studyreader-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U studyreader_user -d studyreader_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+
+networks:
+  studyreader-network:
+    driver: bridge

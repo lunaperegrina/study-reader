@@ -1,0 +1,22 @@
+{
+	"name": "@study-reader/contracts",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"description": "Shared DTOs (zod) between the study-reader api and web app",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"test": "vitest run",
+		"check": "tsc --noEmit"
+	},
+	"dependencies": {
+		"zod": "^4.4.1"
+	},
+	"devDependencies": {
+		"@types/node": "^22.10.0",
+		"typescript": "^5.7.0",
+		"vitest": "^3.0.0"
+	}
+}

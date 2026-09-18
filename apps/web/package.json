@@ -1,0 +1,39 @@
+{
+	"name": "@study-reader/web",
+	"private": true,
+	"version": "0.1.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"start": "vite preview",
+		"preview": "vite preview",
+		"test": "vitest run --passWithNoTests",
+		"check": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@marcomattes/epaper-components": "^2.0.0",
+		"@study-reader/contracts": "workspace:*",
+		"@study-reader/study-format": "workspace:*",
+		"@tailwindcss/vite": "^4.1.0",
+		"@tanstack/react-query": "^5.90.0",
+		"@tanstack/react-router": "1.168.10",
+		"@tanstack/router-plugin": "1.167.12",
+		"better-auth": "^1.7.1",
+		"react": "19.2.5",
+		"react-dom": "19.2.5",
+		"tailwindcss": "^4.1.0"
+	},
+	"devDependencies": {
+		"@testing-library/react": "^16.2.0",
+		"@types/node": "^22.10.0",
+		"@types/react": "^19.2.0",
+		"@types/react-dom": "^19.2.0",
+		"@vitejs/plugin-react": "^5.0.4",
+		"jsdom": "^27.0.0",
+		"typescript": "^5.9.3",
+		"vite": "^7.1.7",
+		"vite-tsconfig-paths": "^5.1.4",
+		"vitest": "^3.0.0"
+	}
+}

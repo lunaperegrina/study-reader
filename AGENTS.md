@@ -24,6 +24,13 @@ Convenções do monorepo study-reader. Estrutura no padrão smartmil-monorepo / 
 | `packages/contracts` | DTOs zod compartilhados api/web (sync, outline, cursos) |
 | `packages/srs` | SM-2 em TS — port exato do `srs.lua`, com vetores de conformance compartilhados |
 
+## Plataforma (apps)
+
+- `apps/api` (`@study-reader/api`): Bun + Elysia (prefixo `/api`, rotas em `/api/v1`), padrão Controller + Service + model por domínio em `src/routes/<dominio>/`, envelope de erro `{error, code, details}` via `AppError`, better-auth montado em `/api/auth/*`, Drizzle (node-postgres) com schemas em `src/db/schema/` re-exportados por `schema-exported.ts` e migrations commitadas (`drizzle-kit generate`, nunca push). Postgres local: `docker compose up -d` (porta host 5434).
+- `apps/web` (`@study-reader/web`): Vite SPA + React 19 + TanStack Router (file-based) + TanStack Query. Componentes são **epaper-components** (`e-*`, Web Components, MIT; wrappers React em `src/components/ink.tsx`) + Tailwind v4 apenas para layout — sem shadcn/radix. Estética papel/e-ink: tokens `--ink-*`, sem sombra, gradiente ou animação.
+- UI e mensagens de erro em pt-BR; strings da web em `apps/web/src/locales/pt-BR.ts` (chave flat + `t()`), prontas para novos idiomas.
+- Env por app via `.env.example` copiado para `.env` (api lê com Bun; web usa prefixo `VITE_`). Deploy: Railway, Dockerfiles no padrão da casa (api `bun build --compile` → distroless; web build Vite → Caddy).
+
 ## koreader-plugin (Lua)
 
 - Código Lua em `packages/koreader-plugin/plugin/studyreader.koplugin/`.

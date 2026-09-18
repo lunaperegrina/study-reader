@@ -1,0 +1,24 @@
+@import "tailwindcss";
+@import "@marcomattes/epaper-components/styles/tokens.css";
+@import "@marcomattes/epaper-components/styles/base.css";
+@import "@marcomattes/epaper-components/styles/components.css";
+
+:root {
+	--ink-bg: #f8f8f3;
+	--ink-fg: #111;
+	--ink-serif: "Iowan Old Style", "Palatino Linotype", Charter, Georgia, serif;
+}
+
+body {
+	margin: 0;
+	background: var(--ink-bg);
+	color: var(--ink-fg);
+}
+
+.ink-page {
+	min-height: 100vh;
+	box-sizing: border-box;
+	padding: var(--ink-space-6) var(--ink-space-5);
+	max-width: 960px;
+	margin: 0 auto;
+}
