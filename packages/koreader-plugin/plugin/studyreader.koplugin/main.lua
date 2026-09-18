@@ -3,8 +3,14 @@
 Adds a "Study" entry to the main menu (reader and file manager) with course
 list, continue-studying and flashcard reviews. See packages/study-format/SPEC.md
 for the .study file format.
+
+Also integrates with Simple UI (simpleui.koplugin) when present: registers a
+Quick Action so Study is reachable from the Simple UI homescreen, and a
+KOReader dispatcher action ("study_open") bindable to gestures and Simple UI
+custom actions.
 ]]
 
+local Dispatcher = require("dispatcher")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local _ = require("gettext")
 
@@ -16,7 +22,43 @@ local Plugin = WidgetContainer:extend{
     name = "studyreader",
 }
 
+Dispatcher:registerAction("study_open", {
+    category = "none",
+    event = "StudyOpen",
+    title = _("Study"),
+    general = true,
+})
+
+function Plugin:onStudyOpen()
+    Screens.myCourses()
+end
+
+function Plugin:_registerSimpleUIAction()
+    if self._sui_registered then return end
+    local ok, QA = pcall(require, "features/sui_quickactions")
+    if not ok or type(QA) ~= "table" or type(QA.register) ~= "function" then
+        return
+    end
+    QA.register({
+        id = "studyreader_open",
+        label = _("Study"),
+        execute = function()
+            Screens.myCourses()
+        end,
+    })
+    self._sui_registered = true
+end
+
+function Plugin:onReaderReady()
+    self:_registerSimpleUIAction()
+end
+
+function Plugin:onFileManagerReady()
+    self:_registerSimpleUIAction()
+end
+
 function Plugin:addToMainMenu(menu_items)
+    self:_registerSimpleUIAction()
     menu_items.studyreader = {
         text = _("Study"),
         sorting_hint = "tools",

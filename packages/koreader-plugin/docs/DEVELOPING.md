@@ -69,6 +69,20 @@ Useful references:
 - `vendor/koreader-base/ffi/archiver.lua` — `Archiver.Reader` (ZIP reading via libarchive)
 - `vendor/koreader/plugins/vocabbuilder.koplugin/main.lua` — canonical example of a FocusManager-based plugin UI
 
+## Simple UI integration
+
+The reference Kindle uses [simpleui.koplugin](https://github.com/doctorhetfield-cmd/simpleui.koplugin)
+as its home interface, which replaces the native file manager and hides the
+standard main menu. The plugin therefore integrates with it when present:
+
+- registers a Simple UI **Quick Action** (`studyreader_open` → My courses) via
+  `QA.register` (guarded by `pcall`, no hard dependency)
+- registers a KOReader **dispatcher action** `study_open` (bindable to gestures
+  and to Simple UI custom actions)
+
+To surface the Quick Action on the Simple UI home: edit the quick actions
+(bottom bar / action list) and add "Study" from the picker.
+
 ## Known limitations (M1)
 
 - Quiz re-answering is not supported yet (answered questions are skipped)
