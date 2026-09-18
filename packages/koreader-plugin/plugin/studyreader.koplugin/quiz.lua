@@ -113,7 +113,11 @@ function QuizWidget:_populate()
 
     local filler = math.max(0,
         self.dimen.h - group:getSize().h - 3 * PADDING)
-    group[#group + 1] = VerticalSpan:new{ width = filler }
+    local full_group = VerticalGroup:new{ align = "left" }
+    for i = 1, #group do
+        full_group[i] = group[i]
+    end
+    full_group[#full_group + 1] = VerticalSpan:new{ width = filler }
 
     self[1] = FrameContainer:new{
         background = Blitbuffer.COLOR_WHITE,
@@ -122,7 +126,7 @@ function QuizWidget:_populate()
         padding = PADDING,
         VerticalGroup:new{
             VerticalSpan:new{ width = PADDING },
-            group,
+            full_group,
         },
     }
     self:refocusWidget()
