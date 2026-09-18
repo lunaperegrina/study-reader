@@ -4,13 +4,13 @@ Adds a "Study" entry to the main menu (reader and file manager) with course
 list, continue-studying and flashcard reviews. See packages/study-format/SPEC.md
 for the .study file format.
 
-v2 flow (Ensina Dev style): tapping a lesson opens it directly; reaching the
-last page offers the lesson quiz; the quiz summary chains into the next
-lesson. Also integrates with Simple UI (simpleui.koplugin) when present via a
-Quick Action, and registers a dispatcher action ("study_open").
+Flow: tapping a lesson opens it directly; the end of the rendered lesson
+carries inline CTAs (studyreader:// links inside the text — quiz, next lesson,
+back to lessons) intercepted by patching the reader's ReaderLink instance
+(same pattern simpleui.koplugin uses). No modals. Also integrates with Simple
+UI via a Quick Action and registers a dispatcher action ("study_open").
 ]]
 
-local ConfirmBox = require("ui/widget/confirmbox")
 local Dispatcher = require("dispatcher")
 local UIManager = require("ui/uimanager")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
@@ -54,6 +54,59 @@ function Plugin:_registerSimpleUIAction()
     logger.info("studyreader: Simple UI quick action registered")
 end
 
+function Plugin:_handleStudyLink(url)
+    local active = Screens.active
+    if not active then return false end
+    local action = url:match("^studyreader://(%a+)$")
+    if action == "quiz" then
+        local state = State.load(active.course.id)
+        local practice = State.completedLesson(state, active.lesson.id)
+        Screens.startQuiz(active.course, active.lesson, practice)
+        return true
+    end
+    if action == "next" then
+        local next_lesson = Store.nextLesson(active.course, active.lesson.id)
+        if next_lesson then
+            Screens.openLesson(active.course, next_lesson)
+            return true
+        end
+        return false
+    end
+    if action == "menu" then
+        local module
+        for _, candidate in ipairs(Store.modules(active.course)) do
+            if candidate.id == active.lesson.module_id then
+                module = candidate
+                break
+            end
+        end
+        if module then
+            Screens.moduleMenu(active.course, module)
+            return true
+        end
+        return false
+    end
+    return false
+end
+
+function Plugin:_patchReaderLink()
+    local link = self.ui and self.ui.link
+    if not link or link._studyreader_patched then return end
+    local plugin = self
+    local original = link.onGotoLink
+    link.onGotoLink = function(this, l, neglect_current_location, allow_footnote_popup)
+        local url = type(l) == "table" and (l.xpointer or l.uri or "") or ""
+        if type(url) == "string" and url:match("^studyreader://") then
+            if plugin:_handleStudyLink(url) then
+                return true
+            end
+        end
+        return original(this, l, neglect_current_location, allow_footnote_popup)
+    end
+    link._studyreader_patched = true
+    logger.dbg("studyreader: ReaderLink patched for inline CTAs")
+end
+
 function Plugin:init()
     self:_registerSimpleUIAction()
     UIManager:scheduleIn(5, function()
@@ -63,39 +116,7 @@ end
 
 function Plugin:onReaderReady()
     self:_registerSimpleUIAction()
-end
-
-function Plugin:onPageUpdate(page)
-    local active = Screens.active
-    if not active or not self.ui or not self.ui.document then return end
-    local lesson_key = active.course.id .. "/" .. active.lesson.id
-    if self._end_lesson ~= lesson_key then
-        self._end_lesson = lesson_key
-        self._end_asked = false
-    end
-    if self._end_asked then return end
-    local ok, total = pcall(function()
-        return self.ui.document:getPageCount()
-    end)
-    if not ok or not total or total < 1 then return end
-    if page < total then return end
-    self._end_asked = true
-    UIManager:show(ConfirmBox:new{
-        text = _("End of lesson — take the quiz?"),
-        ok_text = _("Take quiz"),
-        cancel_text = _("Keep reading"),
-        ok_callback = function()
-            local state = State.load(active.course.id)
-            local practice = State.completedLesson(state, active.lesson.id)
-            Screens.startQuiz(active.course, active.lesson, practice)
-        end,
-    })
-end
-
-function Plugin:onCloseDocument()
-    Screens.active = nil
-    self._end_lesson = nil
-    self._end_asked = false
+    self:_patchReaderLink()
 end
 
 function Plugin:_finishActiveLesson()

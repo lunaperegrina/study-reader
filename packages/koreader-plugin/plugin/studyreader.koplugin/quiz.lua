@@ -111,6 +111,10 @@ function QuizWidget:_populate()
         self:_populateQuestion(group, addText, addWrapped, addSpan, addButton)
     end
 
+    local filler = math.max(0,
+        self.dimen.h - group:getSize().h - 3 * PADDING)
+    group[#group + 1] = VerticalSpan:new{ width = filler }
+
     self[1] = FrameContainer:new{
         background = Blitbuffer.COLOR_WHITE,
         bordersize = 0,
@@ -128,7 +132,8 @@ end
 function QuizWidget:_populateQuestion(group, addText, addWrapped, addSpan, addButton)
     local id = self.pending[self.index]
     local question = self.course.questions[id]
-    addText(string.format(_("Question %d / %d"), self.index, #self.pending),
+    addText(string.format("%s · %s", self.lesson and self.lesson.title or "",
+        string.format(_("Question %d / %d"), self.index, #self.pending)),
         Font:getFace("smallinfofont"))
     addSpan(PADDING)
     addWrapped(question.question, Font:getFace("cfont", 24))

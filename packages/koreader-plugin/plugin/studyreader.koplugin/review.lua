@@ -120,6 +120,10 @@ function ReviewWidget:_populate()
         end
     end
 
+    local filler = math.max(0,
+        self.dimen.h - group:getSize().h - 3 * PADDING)
+    group[#group + 1] = VerticalSpan:new{ width = filler }
+
     self[1] = FrameContainer:new{
         background = Blitbuffer.COLOR_WHITE,
         bordersize = 0,

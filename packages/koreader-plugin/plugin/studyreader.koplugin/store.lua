@@ -326,8 +326,29 @@ function Store.questionIdsForLesson(course, lesson)
     return md2xhtml.parseDirectives(markdown).quizzes
 end
 
+local RENDER_LAYOUT = 2
+
+local function studyEndBlock(quiz_count, next_lesson)
+    local rows = {}
+    if quiz_count > 0 then
+        rows[#rows + 1] = string.format(
+            '<p style="margin:0.9em 0"><a href="studyreader://quiz"><b>&#9656; Take the quiz (%d question%s)</b></a></p>',
+            quiz_count, quiz_count == 1 and "" or "s")
+    end
+    if next_lesson then
+        rows[#rows + 1] = string.format(
+            '<p style="margin:0.9em 0"><a href="studyreader://next">&#9656; Next lesson: %s</a></p>',
+            md2xhtml.escapeXml(next_lesson.title))
+    end
+    rows[#rows + 1] =
+        '<p style="margin:0.9em 0"><a href="studyreader://menu">&#9656; Back to lessons</a></p>'
+    return string.format(
+        '<hr style="border:none;border-top:1px solid #999;margin:1.5em 0"/>\n<div style="line-height:1.6">%s</div>',
+        table.concat(rows, "\n"))
+end
+
 function Store.renderLesson(course, lesson)
-    local render_dir = course.cache_dir .. "/render"
+    local render_dir = course.cache_dir .. "/render-v" .. RENDER_LAYOUT
     if not ensureDir(render_dir) then
         return nil, "cannot create render dir"
     end
@@ -341,11 +362,14 @@ function Store.renderLesson(course, lesson)
         return nil, "cannot read lesson content"
     end
     local parsed = md2xhtml.convert(markdown, lesson.title, "../")
+    local quiz_count = #parsed.quizzes
+    local next_lesson = Store.nextLesson(course, lesson.id)
+    local xhtml = parsed.xhtml:gsub("</body>", studyEndBlock(quiz_count, next_lesson) .. "</body>")
     local out = io.open(xhtml_path, "wb")
     if not out then
         return nil, "cannot write " .. xhtml_path
     end
-    out:write(parsed.xhtml)
+    out:write(xhtml)
     out:close()
     return xhtml_path
 end

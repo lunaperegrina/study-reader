@@ -16,6 +16,8 @@ local function escapeXml(text)
         :gsub('"', "&quot;"))
 end
 
+md2xhtml.escapeXml = escapeXml
+
 local XML_ESCAPED = {
     ["&"] = "&amp;",
     ["<"] = "&lt;",
