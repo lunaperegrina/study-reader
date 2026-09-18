@@ -107,8 +107,40 @@ function Plugin:_patchReaderLink()
     logger.dbg("studyreader: ReaderLink patched for inline CTAs")
 end
 
+function Plugin:_cleanHistory()
+    local ok, ReadHistory = pcall(require, "readhistory")
+    if not ok or type(ReadHistory) ~= "table" or type(ReadHistory.hist) ~= "table" then
+        return
+    end
+    local removed = false
+    for i = #ReadHistory.hist, 1, -1 do
+        local file = ReadHistory.hist[i].file
+        if type(file) == "string"
+            and (file:find("/studyreader/render", 1, true)
+                or file:find("/studyreader/cache", 1, true)) then
+            ReadHistory:removeItem(ReadHistory.hist[i], i, true)
+            removed = true
+        end
+    end
+    if removed then
+        ReadHistory:_flush()
+    end
+    local lastfile = G_reader_settings and G_reader_settings:readSetting("lastfile")
+    if type(lastfile) == "string"
+        and (lastfile:find("/studyreader/render", 1, true)
+            or lastfile:find("/studyreader/cache", 1, true)) then
+        if #ReadHistory.hist > 0 then
+            G_reader_settings:saveSetting("lastfile", ReadHistory.hist[1].file)
+        else
+            pcall(function() G_reader_settings:delSetting("lastfile") end)
+        end
+        pcall(function() G_reader_settings:flush() end)
+    end
+end
+
 function Plugin:init()
     self:_registerSimpleUIAction()
+    self:_cleanHistory()
     UIManager:scheduleIn(5, function()
         self:_registerSimpleUIAction()
     end)
@@ -117,6 +149,7 @@ end
 function Plugin:onReaderReady()
     self:_registerSimpleUIAction()
     self:_patchReaderLink()
+    self:_cleanHistory()
 end
 
 function Plugin:_finishActiveLesson()
