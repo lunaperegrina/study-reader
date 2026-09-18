@@ -19,6 +19,7 @@ local Plugin = WidgetContainer:extend{
 function Plugin:addToMainMenu(menu_items)
     menu_items.studyreader = {
         text = _("Study"),
+        sorting_hint = "tools",
         sub_item_table = {
             {
                 text = _("My courses"),
