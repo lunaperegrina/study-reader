@@ -16,6 +16,7 @@ assertProductionEnv({
 
 const isProduction = process.env.NODE_ENV === "production"
 const allowedOrigins = getAllowedOriginsFromEnv(process.env.API_ALLOWED_ORIGINS)
+const crossSiteCookies = process.env.AUTH_CROSS_SITE_COOKIES === "1"
 
 export const auth = betterAuth({
 	baseURL: {
@@ -42,5 +43,8 @@ export const auth = betterAuth({
 	},
 	advanced: {
 		trustedProxyHeaders: true,
+		defaultCookieAttributes: crossSiteCookies
+			? { sameSite: "none" as const }
+			: undefined,
 	},
 })
