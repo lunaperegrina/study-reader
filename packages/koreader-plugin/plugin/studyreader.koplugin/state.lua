@@ -20,7 +20,7 @@ local function ensureDir(path)
     for part in path:gmatch("[^/]+") do
         parts[#parts + 1] = part
     end
-    local current = parts[1]
+    local current = path:sub(1, 1) == "/" and ("/" .. parts[1]) or parts[1]
     for i = 2, #parts do
         current = current .. "/" .. parts[i]
         if lfs.attributes(current, "mode") ~= "directory" then
