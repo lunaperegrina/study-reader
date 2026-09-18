@@ -27,5 +27,7 @@ WORKDIR /app
 COPY --from=build --chown=nonroot:nonroot /app/server ./server
 COPY --from=build --chown=nonroot:nonroot /app/apps/api/drizzle ./drizzle
 ENV NODE_ENV=production
+ENV MIGRATIONS_FOLDER=/app/drizzle
+ENV MIGRATIONS_ON_BOOT=1
 CMD ["./server"]
 EXPOSE 3001

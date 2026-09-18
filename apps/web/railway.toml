@@ -1,0 +1,7 @@
+[deploy]
+dockerfilePath = "apps/web/Dockerfile"
+healthcheckPath = "/"
+healthcheckTimeout = 30
+replicas = 1
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

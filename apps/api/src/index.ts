@@ -5,6 +5,7 @@ import { auth } from "./lib/auth/auth"
 import { getAllowedOriginsFromEnv, isLoopbackOrigin } from "./lib/env"
 import { createRateLimiter } from "./lib/rate-limit"
 import { ApiRoutes } from "./routes"
+import { runMigrations } from "./scripts/migrate"
 
 const isProduction = process.env.NODE_ENV === "production"
 const allowedOrigins = getAllowedOriginsFromEnv(process.env.API_ALLOWED_ORIGINS)
@@ -83,6 +84,8 @@ export const app = new Elysia({ prefix: "/api" })
 	.all("/auth/*", ({ request }) => auth.handler(request))
 	.use(ApiRoutes)
 	.get("/health", () => ({ ok: true }))
+
+if (process.env.MIGRATIONS_ON_BOOT === "1") await runMigrations()
 
 export default {
 	port: Number(process.env.PORT ?? 3001),
