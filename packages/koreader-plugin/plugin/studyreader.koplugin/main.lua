@@ -139,6 +139,10 @@ function Plugin:_cleanHistory()
 end
 
 function Plugin:init()
+    -- FileManagerMenu/ReaderMenu only call addToMainMenu() on registered widgets.
+    if self.ui and self.ui.menu then
+        self.ui.menu:registerToMainMenu(self)
+    end
     self:_registerSimpleUIAction()
     self:_cleanHistory()
     UIManager:scheduleIn(5, function()

@@ -98,6 +98,54 @@ check("srs clamps easiness floor", function()
 	assert(card.ef >= 1.3)
 end)
 
+check("main registers itself in the KOReader main menu", function()
+	-- FileManagerMenu/ReaderMenu only call addToMainMenu() on widgets passed to
+	-- menu:registerToMainMenu(), so init() must register the plugin.
+	local stubs = {
+		["dispatcher"] = { registerAction = function() end },
+		["ui/uimanager"] = { scheduleIn = function() end },
+		["logger"] = { dbg = function() end, info = function() end },
+		["gettext"] = function(s) return s end,
+		["screens"] = {},
+		["state"] = {},
+		["store"] = {},
+		["ui/widget/container/widgetcontainer"] = {
+			extend = function(base, o)
+				o = o or {}
+				o.new = function(cls, inst)
+					inst = setmetatable(inst or {}, { __index = cls })
+					if inst.init then inst:init() end
+					return inst
+				end
+				return setmetatable(o, { __index = base })
+			end,
+		},
+	}
+	local saved = {}
+	for name, mod in pairs(stubs) do
+		saved[name] = package.loaded[name]
+		package.loaded[name] = mod
+	end
+	local ok, err = pcall(function()
+		local Plugin = dofile(plugin .. "main.lua")
+		local registered = {}
+		local ui = { menu = { registerToMainMenu = function(_, w) registered[#registered + 1] = w end } }
+		local instance = Plugin:new{ ui = ui }
+		assert(#registered == 1 and registered[1] == instance, "plugin not registered to main menu")
+		local menu_items = {}
+		instance:addToMainMenu(menu_items)
+		local entry = menu_items.studyreader
+		assert(entry and entry.text == "Study", "missing Study entry")
+		local sub = entry.sub_item_table_func()
+		assert(sub[1].text == "My courses" and sub[2].text == "Continue studying"
+			and sub[3].text == "Reviews", "unexpected Study submenu")
+	end)
+	for name in pairs(stubs) do
+		package.loaded[name] = saved[name]
+	end
+	assert(ok, err)
+end)
+
 if failures > 0 then
 	print(string.format("\n%d failure(s)", failures))
 	os.exit(1)
