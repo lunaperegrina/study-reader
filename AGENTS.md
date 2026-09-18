@@ -12,7 +12,7 @@ Convenções do monorepo study-reader. Estrutura no padrão smartmil-monorepo / 
 - Commits: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, com scope `feat(koreader-plugin):`). Sem hooks/commitlint — é convenção.
 - Zero comentários explicativos no código — o código se explica. Comentários só para restrições que o código não expressa.
 - Docs de produto/repo em inglês; docs de processo e conversas com o time em português.
-- Sem LICENSE ainda (decisão pendente do mantenedor).
+- Licenças (definido 2026-09-18): pacotes (`packages/*`) MIT; texto da spec `.study` CC0; apps da plataforma (`apps/*`) AGPL-3.0. Cada pacote/app tem seu `LICENSE`.
 
 ## Pacotes
 
@@ -21,6 +21,8 @@ Convenções do monorepo study-reader. Estrutura no padrão smartmil-monorepo / 
 | `packages/study-format` | Spec `.study` + JSON Schemas + toolkit TS (zod + fflate) |
 | `packages/mdx-to-study` | Converter conteúdo de curso (MDX) → pacote `.study` |
 | `packages/koreader-plugin` | Plugin Lua `studyreader.koplugin` para KOReader + deploy SSH |
+| `packages/contracts` | DTOs zod compartilhados api/web (sync, outline, cursos) |
+| `packages/srs` | SM-2 em TS — port exato do `srs.lua`, com vetores de conformance compartilhados |
 
 ## koreader-plugin (Lua)
 
@@ -33,6 +35,7 @@ Convenções do monorepo study-reader. Estrutura no padrão smartmil-monorepo / 
 ## Contexto de produto
 
 - O `.study` é o produto central: formato aberto, conteúdo portátil, ferramentas de terceiros podem gerar/consumir (Anki → .study, Obsidian → .study etc.).
-- IA/plataforma web/cloud criam `.study`, mas o pacote funciona 100% offline depois de criado.
+- Plataforma web (M9+): login + biblioteca privada (upload livre de `.study`), web reader, criador de curso com IA (BYOK/self-host e instância hospedada) e sync de progresso web ↔ Kindle. Sem billing no MVP; cursos gerados de material do próprio usuário são privados por padrão (não há catálogo público nem compartilhamento).
+- O pacote funciona 100% offline depois de criado; a plataforma replica estado (JSONs por curso, merge per-key LWW), nunca vira dependência do plugin.
 - Poligloteca é um produto separado — nenhum código compartilhado, no máximo interoperabilidade via formato no futuro.
-- Plataforma (web/api/cloud) está fora do escopo do M1: primeiro formato + plugin validados no Kindle.
+- `examples/` só pode conter conteúdo próprio (apenas `tiny-course.study` é trackeado; os demais `.study` de teste ficam locais, ignorados pelo git).

@@ -1,5 +1,10 @@
 # The `.study` Format — Specification v1
 
+> **License:** the text of this specification is dedicated to the public
+> domain under [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/).
+> The reference toolkit in this package is MIT-licensed (see `LICENSE`).
+> Anyone may implement, extend or fork the format without restriction.
+
 A `.study` file is a **portable, immutable study course package**: lessons in
 Markdown, a quiz bank, a flashcard deck and assets, bundled as a ZIP.
 

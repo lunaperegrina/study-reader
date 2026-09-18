@@ -80,3 +80,15 @@ relaunching KOReader, crash.log) — `pnpm plugin:remote screenshot` — so UI w
 is verified without holding the reader.
 
 See [`packages/koreader-plugin/docs/DEVELOPING.md`](packages/koreader-plugin/docs/DEVELOPING.md).
+
+## Licensing
+
+| Component | License |
+| --- | --- |
+| `.study` format specification ([SPEC.md](packages/study-format/SPEC.md)) | CC0 1.0 (public domain) |
+| `packages/study-format`, `packages/mdx-to-study`, `packages/koreader-plugin` | MIT |
+| `apps/*` (web platform) | AGPL-3.0 |
+
+The spec is CC0 so anyone can implement or fork the format without
+restriction; the toolkit and plugin are MIT for maximum adoption; the platform
+apps are AGPL so hosted derivatives must stay open.
